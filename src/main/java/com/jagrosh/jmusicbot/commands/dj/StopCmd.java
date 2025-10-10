@@ -19,6 +19,7 @@ import com.jagrosh.jdautilities.command.CommandEvent;
 import com.jagrosh.jmusicbot.Bot;
 import com.jagrosh.jmusicbot.audio.AudioHandler;
 import com.jagrosh.jmusicbot.commands.DJCommand;
+import com.jagrosh.jmusicbot.utils.OtherUtil;
 
 /**
  *
@@ -31,7 +32,7 @@ public class StopCmd extends DJCommand
         super(bot);
         this.name = "stop";
         this.help = "再生中の曲を停止し、キューを空にします";
-        this.aliases = bot.getConfig().getAliases(this.name);
+        this.aliases = OtherUtil.mergeCommandAliases(bot.getConfig().getAliases(this.name), "dc");
         this.bePlaying = false;
     }
 

@@ -23,6 +23,8 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.OnlineStatus;
@@ -210,6 +212,92 @@ public class OtherUtil
         {
             return null;
         }
+    }
+
+    public static String[] mergeCommandAliases(String[] configuredAliases, String... defaultAliases)
+    {
+        Set<String> aliasSet = new LinkedHashSet<>();
+        if(configuredAliases != null)
+        {
+            for(String alias : configuredAliases)
+                addAliasVariants(aliasSet, alias);
+        }
+        if(defaultAliases != null)
+        {
+            for(String alias : defaultAliases)
+                addAliasVariants(aliasSet, alias);
+        }
+        return aliasSet.toArray(new String[0]);
+    }
+
+    private static void addAliasVariants(Set<String> aliasSet, String alias)
+    {
+        if(alias == null)
+            return;
+        String trimmed = alias.trim();
+        if(trimmed.isEmpty())
+            return;
+
+        Set<String> caseVariants = new LinkedHashSet<>();
+        collectCaseVariants(trimmed.toCharArray(), 0, new StringBuilder(), caseVariants);
+        if(caseVariants.isEmpty())
+            caseVariants.add(trimmed);
+
+        for(String variant : caseVariants)
+        {
+            aliasSet.add(variant);
+            aliasSet.add(toFullWidth(variant));
+        }
+    }
+
+    private static void collectCaseVariants(char[] chars, int index, StringBuilder current, Set<String> sink)
+    {
+        if(index >= chars.length)
+        {
+            sink.add(current.toString());
+            return;
+        }
+
+        char c = chars[index];
+        if(Character.isLetter(c))
+        {
+            current.append(Character.toLowerCase(c));
+            collectCaseVariants(chars, index + 1, current, sink);
+            current.setLength(current.length() - 1);
+
+            current.append(Character.toUpperCase(c));
+            collectCaseVariants(chars, index + 1, current, sink);
+            current.setLength(current.length() - 1);
+        }
+        else
+        {
+            current.append(c);
+            collectCaseVariants(chars, index + 1, current, sink);
+            current.setLength(current.length() - 1);
+        }
+    }
+
+    public static String toFullWidth(String input)
+    {
+        if(input == null || input.isEmpty())
+            return input;
+        StringBuilder builder = new StringBuilder(input.length());
+        for(char c : input.toCharArray())
+        {
+            if(c == ' ')
+            {
+                builder.append('\u3000');
+            }
+            else if(c >= 0x21 && c <= 0x7E)
+            {
+                builder.append((char)(c + 0xFEE0));
+            }
+            else
+            {
+                builder.append(c);
+            }
+        }
+        return builder.toString();
     }
 
     /**

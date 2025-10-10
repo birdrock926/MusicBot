@@ -32,6 +32,7 @@ import com.jagrosh.jmusicbot.commands.DJCommand;
 import com.jagrosh.jmusicbot.commands.MusicCommand;
 import com.jagrosh.jmusicbot.playlist.PlaylistLoader.Playlist;
 import com.jagrosh.jmusicbot.utils.FormatUtil;
+import com.jagrosh.jmusicbot.utils.OtherUtil;
 import java.util.concurrent.TimeUnit;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Message;
@@ -55,7 +56,7 @@ public class PlayCmd extends MusicCommand
         this.name = "play";
         this.arguments = "<タイトル|URL|サブコマンド>";
         this.help = "指定した曲を再生します";
-        this.aliases = bot.getConfig().getAliases(this.name);
+        this.aliases = OtherUtil.mergeCommandAliases(bot.getConfig().getAliases(this.name), "p");
         this.beListening = true;
         this.bePlaying = false;
         this.children = new Command[]{new PlaylistCmd(bot)};

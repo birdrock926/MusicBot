@@ -21,6 +21,7 @@ import com.jagrosh.jmusicbot.audio.AudioHandler;
 import com.jagrosh.jmusicbot.audio.RequestMetadata;
 import com.jagrosh.jmusicbot.commands.MusicCommand;
 import com.jagrosh.jmusicbot.utils.FormatUtil;
+import com.jagrosh.jmusicbot.utils.OtherUtil;
 
 /**
  *
@@ -33,7 +34,7 @@ public class SkipCmd extends MusicCommand
         super(bot);
         this.name = "skip";
         this.help = "再生中の曲をスキップするための投票を行います";
-        this.aliases = bot.getConfig().getAliases(this.name);
+        this.aliases = OtherUtil.mergeCommandAliases(bot.getConfig().getAliases(this.name), "s");
         this.beListening = true;
         this.bePlaying = true;
     }
