@@ -138,7 +138,64 @@ public class PlayCmd extends MusicCommand
                         }).build().display(m);
             }
         }
-        
+
+        private void loadSingleWithPlaylist(AudioTrack track, AudioPlaylist playlist)
+        {
+            if(bot.getConfig().isTooLong(track))
+            {
+                m.editMessage(FormatUtil.filter(event.getClient().getWarning()+" This track (**"+track.getInfo().title+"**) is longer than the allowed maximum: `"
+                        + TimeUtil.formatTime(track.getDuration())+"` > `"+ TimeUtil.formatTime(bot.getConfig().getMaxSeconds()*1000)+"`")).queue();
+                return;
+            }
+
+            AudioHandler handler = (AudioHandler)event.getGuild().getAudioManager().getSendingHandler();
+            int pos = handler.addTrack(new QueuedTrack(track, RequestMetadata.fromResultHandler(track, event)))+1;
+            StringBuilder builder = new StringBuilder();
+            builder.append(event.getClient().getSuccess())
+                    .append(" Added **").append(track.getInfo().title)
+                    .append("** (`").append(TimeUtil.formatTime(track.getDuration())).append("`) ")
+                    .append(pos==0 ? "to begin playing" : " to the queue at position "+pos);
+
+            int total = playlist.getTracks().size();
+            int count = loadPlaylist(playlist, track);
+
+            if(total == 0)
+            {
+                builder.append("\n").append(event.getClient().getWarning())
+                        .append(" The playlist ")
+                        .append(playlist.getName()==null ? "" : "(**"+playlist.getName()+"**) ")
+                        .append("could not be loaded or contained 0 entries");
+            }
+            else if(total == 1)
+            {
+                // no additional tracks to add
+            }
+            else if(count == 0)
+            {
+                builder.append("\n").append(event.getClient().getWarning())
+                        .append(" All other entries in this playlist ")
+                        .append(playlist.getName()==null ? "" : "(**"+playlist.getName()+"**) ")
+                        .append("were longer than the allowed maximum (`")
+                        .append(bot.getConfig().getMaxTime()).append("`)");
+            }
+            else
+            {
+                builder.append("\n").append(event.getClient().getSuccess())
+                        .append(" Loaded playlist ")
+                        .append(playlist.getName()==null ? "with" : "**"+playlist.getName()+"** with")
+                        .append(" `").append(total).append("` entries; queued `")
+                        .append(count).append("` additional tracks!");
+                if(count < total-1)
+                {
+                    builder.append("\n").append(event.getClient().getWarning())
+                            .append(" Tracks longer than the allowed maximum (`")
+                            .append(bot.getConfig().getMaxTime()).append("`) have been omitted.");
+                }
+            }
+
+            m.editMessage(FormatUtil.filter(builder.toString())).queue();
+        }
+
         private int loadPlaylist(AudioPlaylist playlist, AudioTrack exclude)
         {
             int[] count = {0};
@@ -170,7 +227,7 @@ public class PlayCmd extends MusicCommand
             else if (playlist.getSelectedTrack()!=null)
             {
                 AudioTrack single = playlist.getSelectedTrack();
-                loadSingle(single, playlist);
+                loadSingleWithPlaylist(single, playlist);
             }
             else
             {
