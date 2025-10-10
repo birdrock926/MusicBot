@@ -106,8 +106,8 @@ public class BotConfig
             // validate bot token
             if(token==null || token.isEmpty() || token.equalsIgnoreCase("BOT_TOKEN_HERE"))
             {
-                token = prompt.prompt("Please provide a bot token."
-                        + "\nInstructions for obtaining a token can be found here:"
+                token = prompt.prompt("ボットトークンを入力してください。"
+                        + "\nトークンの取得方法はこちらを参照してください:"
                         + "\nhttps://github.com/jagrosh/MusicBot/wiki/Getting-a-Bot-Token."
                         + "\nBot Token: ");
                 if(token==null)
@@ -126,9 +126,9 @@ public class BotConfig
             {
                 try
                 {
-                    owner = Long.parseLong(prompt.prompt("Owner ID was missing, or the provided owner ID is not valid."
-                        + "\nPlease provide the User ID of the bot's owner."
-                        + "\nInstructions for obtaining your User ID can be found here:"
+                    owner = Long.parseLong(prompt.prompt("オーナーIDが設定されていないか、指定されたオーナーIDが無効です。"
+                        + "\nボット所有者のユーザーIDを入力してください。"
+                        + "\nユーザーIDの取得方法はこちらを参照してください:"
                         + "\nhttps://github.com/jagrosh/MusicBot/wiki/Finding-Your-User-ID"
                         + "\nOwner User ID: "));
                 }
@@ -170,8 +170,8 @@ public class BotConfig
         }
         catch(IOException ex) 
         {
-            prompt.alert(Prompt.Level.WARNING, CONTEXT, "Failed to write new config options to config.txt: "+ex
-                + "\nPlease make sure that the files are not on your desktop or some other restricted area.\n\nConfig Location: " 
+            prompt.alert(Prompt.Level.WARNING, CONTEXT, "config.txt に新しい設定を書き込めませんでした: "+ex
+                + "\nファイルがデスクトップや制限された場所にないか確認してください。\n\nConfig Location: "
                 + path.toAbsolutePath().toString());
         }
     }
