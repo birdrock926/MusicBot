@@ -28,6 +28,8 @@ import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackEndReason;
 import com.sedmelluq.discord.lavaplayer.track.playback.AudioFrame;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -64,6 +66,10 @@ public class AudioHandler extends AudioEventAdapter implements AudioSendHandler
     private static final long STUCK_RECHECK_DELAY_MS = 750L;
     private static final long RECENT_FRAME_WINDOW_MS = 700L;
     private static final long STUCK_POSITION_TOLERANCE_MS = 250L;
+    private static final int BUFFER_DELAY_MS = 3000;
+    private static final int BUFFER_FRAME_INTERVAL_MS = 20;
+    private static final int BUFFER_TARGET_FRAMES = BUFFER_DELAY_MS / BUFFER_FRAME_INTERVAL_MS;
+    private static final int BUFFER_MAX_FRAMES = BUFFER_TARGET_FRAMES + 50;
 
     private final List<AudioTrack> defaultQueue = new LinkedList<>();
     private final Set<String> votes = new HashSet<>();
@@ -72,8 +78,10 @@ public class AudioHandler extends AudioEventAdapter implements AudioSendHandler
     private final AudioPlayer audioPlayer;
     private final long guildId;
 
+    private final Deque<AudioFrame> frameBuffer = new ArrayDeque<>();
     private AudioFrame lastFrame;
     private volatile long lastFrameProvideTimeMs;
+    private volatile boolean bufferPrimed;
     private AbstractQueue<QueuedTrack> queue;
 
     protected AudioHandler(PlayerManager manager, Guild guild, AudioPlayer player)
@@ -536,21 +544,39 @@ public class AudioHandler extends AudioEventAdapter implements AudioSendHandler
     @Override
     public boolean canProvide()
     {
-        lastFrame = audioPlayer.provide();
-        if(lastFrame != null)
+        AudioFrame provided = audioPlayer.provide();
+        if(provided != null)
         {
-            AudioTrack playingTrack = audioPlayer.getPlayingTrack();
-            if(playingTrack != null)
-                lastFrameProvideTimeMs = System.currentTimeMillis();
+            if(frameBuffer.size() >= BUFFER_MAX_FRAMES)
+                frameBuffer.poll();
+            frameBuffer.offer(provided);
         }
+
+        if(!bufferPrimed && frameBuffer.size() >= BUFFER_TARGET_FRAMES)
+            bufferPrimed = true;
+
+        if(bufferPrimed && lastFrame == null && !frameBuffer.isEmpty())
+            lastFrame = frameBuffer.poll();
+
+        if(bufferPrimed && lastFrame == null && frameBuffer.isEmpty())
+            bufferPrimed = false;
+
         return lastFrame != null;
     }
 
     @Override
     public ByteBuffer provide20MsAudio()
     {
-        ByteBuffer buffer = lastFrame == null ? null : ByteBuffer.wrap(lastFrame.getData());
+        if(lastFrame == null)
+            return null;
+
+        ByteBuffer buffer = ByteBuffer.wrap(lastFrame.getData());
+        lastFrameProvideTimeMs = System.currentTimeMillis();
         lastFrame = null;
+
+        if(bufferPrimed && !frameBuffer.isEmpty())
+            lastFrame = frameBuffer.poll();
+
         return buffer;
     }
 
@@ -569,7 +595,9 @@ public class AudioHandler extends AudioEventAdapter implements AudioSendHandler
 
     private void clearFrameState()
     {
+        frameBuffer.clear();
         lastFrame = null;
         lastFrameProvideTimeMs = System.currentTimeMillis();
+        bufferPrimed = false;
     }
 }
