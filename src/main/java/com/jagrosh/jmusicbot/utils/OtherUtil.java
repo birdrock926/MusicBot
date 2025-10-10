@@ -40,10 +40,10 @@ import org.json.JSONTokener;
  */
 public class OtherUtil
 {
-    public final static String NEW_VERSION_AVAILABLE = "There is a new version of JMusicBot available!\n"
-                    + "Current version: %s\n"
-                    + "New Version: %s\n\n"
-                    + "Please visit https://github.com/jagrosh/MusicBot/releases/latest to get the latest release.";
+    public final static String NEW_VERSION_AVAILABLE = "JMusicBot の新しいバージョンが利用可能です！\n"
+                    + "現在のバージョン: %s\n"
+                    + "新しいバージョン: %s\n\n"
+                    + "最新のリリースは https://github.com/jagrosh/MusicBot/releases/latest から入手してください。";
     private final static String WINDOWS_INVALID_PATH = "c:\\windows\\system32\\";
     
     /**
@@ -157,8 +157,8 @@ public class OtherUtil
     public static void checkJavaVersion(Prompt prompt)
     {
         if(!System.getProperty("java.vm.name").contains("64"))
-            prompt.alert(Prompt.Level.WARNING, "Java Version", 
-                    "It appears that you may not be using a supported Java version. Please use 64-bit java.");
+            prompt.alert(Prompt.Level.WARNING, "Java Version",
+                    "サポートされているJavaバージョンを使用していない可能性があります。64ビット版のJavaを使用してください。");
     }
     
     public static void checkVersion(Prompt prompt)
@@ -219,14 +219,13 @@ public class OtherUtil
     public static String getUnsupportedBotReason(JDA jda) 
     {
         if (jda.getSelfUser().getFlags().contains(User.UserFlag.VERIFIED_BOT))
-            return "The bot is verified. Using JMusicBot in a verified bot is not supported.";
+            return "このボットは認証済みです。認証済みボットでのJMusicBotの使用はサポートされていません。";
 
         ApplicationInfo info = jda.retrieveApplicationInfo().complete();
         if (info.isBotPublic())
-            return "\"Public Bot\" is enabled. Using JMusicBot as a public bot is not supported. Please disable it in the "
-                    + "Developer Dashboard at https://discord.com/developers/applications/" + jda.getSelfUser().getId() + "/bot ."
-                    + "You may also need to disable all Installation Contexts at https://discord.com/developers/applications/" 
-                    + jda.getSelfUser().getId() + "/installation .";
+            return "\"Public Bot\" が有効になっています。公開ボットとしてJMusicBotを使用することはサポートされていません。次の開発者ダッシュボードで無効化してください: "
+                    + "https://discord.com/developers/applications/" + jda.getSelfUser().getId() + "/bot"
+                    + "\nまた、https://discord.com/developers/applications/" + jda.getSelfUser().getId() + "/installation で全てのインストールコンテキストを無効にする必要がある場合があります。";
 
         return null;
     }
