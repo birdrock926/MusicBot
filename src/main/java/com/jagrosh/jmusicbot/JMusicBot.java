@@ -178,10 +178,18 @@ public class JMusicBot
         aboutCommand.setIsAuthor(false);
         aboutCommand.setReplacementCharacter("\uD83C\uDFB6"); // 🎶
         
+        String primaryPrefix = config.getPrefix();
+        String alternatePrefix = config.getAltPrefix();
+        if(!"@mention".equalsIgnoreCase(primaryPrefix) && alternatePrefix != null
+                && "@mention".equalsIgnoreCase(alternatePrefix))
+        {
+            alternatePrefix = null;
+        }
+
         // set up the command client
         CommandClientBuilder cb = new CommandClientBuilder()
-                .setPrefix(config.getPrefix())
-                .setAlternativePrefix(config.getAltPrefix())
+                .setPrefix(primaryPrefix)
+                .setAlternativePrefix(alternatePrefix)
                 .setOwnerId(Long.toString(config.getOwnerId()))
                 .setEmojis(config.getSuccess(), config.getWarning(), config.getError())
                 .setHelpWord(config.getHelp())
