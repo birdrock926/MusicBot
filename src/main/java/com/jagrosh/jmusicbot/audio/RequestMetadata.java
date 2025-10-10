@@ -66,23 +66,25 @@ public class RequestMetadata
         public final long startTimestamp;
         public final long channelId;
         public final boolean searchFallbackAttempted;
+        public final int stuckResets;
 
         public RequestInfo(String query, String url, long channelId)
         {
-            this(query, url, tryGetTimestamp(query), channelId, false);
+            this(query, url, tryGetTimestamp(query), channelId, false, 0);
         }
 
-        private RequestInfo(String query, String url, long startTimestamp, long channelId, boolean searchFallbackAttempted)
+        private RequestInfo(String query, String url, long startTimestamp, long channelId, boolean searchFallbackAttempted, int stuckResets)
         {
             this.url = url;
             this.query = query;
             this.startTimestamp = startTimestamp;
             this.channelId = channelId;
             this.searchFallbackAttempted = searchFallbackAttempted;
+            this.stuckResets = stuckResets;
         }
         public RequestInfo withFallbackAttempted()
         {
-            return new RequestInfo(query, url, startTimestamp, channelId, true);
+            return new RequestInfo(query, url, startTimestamp, channelId, true, stuckResets);
         }
 
         public boolean canRetrySearch()
@@ -92,7 +94,17 @@ public class RequestMetadata
 
         public RequestInfo withResolvedUrl(String resolvedUrl)
         {
-            return new RequestInfo(query, resolvedUrl, startTimestamp, channelId, searchFallbackAttempted);
+            return new RequestInfo(query, resolvedUrl, startTimestamp, channelId, searchFallbackAttempted, stuckResets);
+        }
+
+        public boolean canRetryStuck()
+        {
+            return stuckResets < 2;
+        }
+
+        public RequestInfo withStuckRetry()
+        {
+            return new RequestInfo(query, url, startTimestamp, channelId, searchFallbackAttempted, stuckResets + 1);
         }
 
         private static final Pattern youtubeTimestampPattern = Pattern.compile("youtu(?:\\.be|be\\..+)/.*\\?.*(?!.*list=)t=([\\dhms]+)");

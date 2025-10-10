@@ -240,6 +240,51 @@ public class AudioHandler extends AudioEventAdapter implements AudioSendHandler
         }
     }
 
+    @Override
+    public void onTrackStuck(AudioPlayer player, AudioTrack track, long thresholdMs)
+    {
+        Logger logger = LoggerFactory.getLogger("AudioHandler");
+        logger.warn("Track {} got stuck ({}ms), attempting recovery", track.getIdentifier(), thresholdMs);
+
+        RequestMetadata metadata = track.getUserData(RequestMetadata.class);
+        Guild guild = manager.getBot().getJDA() == null ? null : manager.getBot().getJDA().getGuildById(guildId);
+        TextChannel channel = resolveNotificationChannel(guild, metadata);
+
+        boolean canRetry = metadata != null && metadata.requestInfo != null && metadata.requestInfo.canRetryStuck();
+
+        if(canRetry)
+        {
+            if(channel != null)
+            {
+                channel.sendMessage(FormatUtil.filter(manager.getBot().getConfig().getWarning()
+                        + " 再生が途切れたため曲を再読み込みします..."))
+                        .queue();
+            }
+
+            AudioTrack clone = track.makeClone();
+            if(clone != null)
+            {
+                long position = track.getPosition();
+                clone.setPosition(position);
+                RequestMetadata updated = metadata.withRequestInfo(metadata.requestInfo.withStuckRetry());
+                clone.setUserData(updated);
+                lastFrame = null;
+                player.playTrack(clone);
+                return;
+            }
+        }
+
+        if(channel != null)
+        {
+            channel.sendMessage(FormatUtil.filter(manager.getBot().getConfig().getWarning()
+                    + " 再生が復旧できなかったため、次の曲に進みます。"))
+                    .queue();
+        }
+
+        lastFrame = null;
+        player.stopTrack();
+    }
+
     private boolean shouldRetryWithSearch(RequestMetadata metadata)
     {
         if(metadata == null || metadata.requestInfo == null)
