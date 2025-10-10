@@ -31,8 +31,9 @@ A cross-platform Discord music bot with a clean interface, and that is easy to s
 JMusicBot streams audio to Discord using Lavaplayer's Opus encoder. The encoder now
 forces its quality level to `10`, which corresponds to roughly 128 kbps Opus frames
 and is the highest bitrate Discord accepts for standard voice connections. In
-addition, the internal frame buffer uses the non-allocating implementation from
-Lavaplayer to reduce GC hitches that can manifest as brief dropouts.
+addition, playback goes through a lightweight jitter buffer (about 120 ms of
+audio) backed by Lavaplayer's non-allocating frame queue so that momentary CPU or
+network hiccups no longer surface as audible pops.
 
 Because Discord expects Opus frames, downloading tracks as MP3 files before
 sending them does not reduce latency and would instead add conversion overhead.

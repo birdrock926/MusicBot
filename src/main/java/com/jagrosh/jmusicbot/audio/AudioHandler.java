@@ -66,10 +66,9 @@ public class AudioHandler extends AudioEventAdapter implements AudioSendHandler
     private static final long STUCK_RECHECK_DELAY_MS = 750L;
     private static final long RECENT_FRAME_WINDOW_MS = 700L;
     private static final long STUCK_POSITION_TOLERANCE_MS = 250L;
-    private static final int BUFFER_DELAY_MS = 3000;
-    private static final int BUFFER_FRAME_INTERVAL_MS = 20;
-    private static final int BUFFER_TARGET_FRAMES = BUFFER_DELAY_MS / BUFFER_FRAME_INTERVAL_MS;
-    private static final int BUFFER_MAX_FRAMES = BUFFER_TARGET_FRAMES + 50;
+    // Keep roughly 120ms of decoded audio ready so brief hiccups don't surface as pops.
+    private static final int JITTER_TARGET_FRAMES = 6;
+    private static final int JITTER_MAX_FRAMES = 18;
 
     private final List<AudioTrack> defaultQueue = new LinkedList<>();
     private final Set<String> votes = new HashSet<>();
@@ -81,7 +80,6 @@ public class AudioHandler extends AudioEventAdapter implements AudioSendHandler
     private final Deque<AudioFrame> frameBuffer = new ArrayDeque<>();
     private AudioFrame lastFrame;
     private volatile long lastFrameProvideTimeMs;
-    private volatile boolean bufferPrimed;
     private AbstractQueue<QueuedTrack> queue;
 
     protected AudioHandler(PlayerManager manager, Guild guild, AudioPlayer player)
@@ -544,22 +542,8 @@ public class AudioHandler extends AudioEventAdapter implements AudioSendHandler
     @Override
     public boolean canProvide()
     {
-        AudioFrame provided = audioPlayer.provide();
-        if(provided != null)
-        {
-            if(frameBuffer.size() >= BUFFER_MAX_FRAMES)
-                frameBuffer.poll();
-            frameBuffer.offer(provided);
-        }
-
-        if(!bufferPrimed && frameBuffer.size() >= BUFFER_TARGET_FRAMES)
-            bufferPrimed = true;
-
-        if(bufferPrimed && lastFrame == null && !frameBuffer.isEmpty())
-            lastFrame = frameBuffer.poll();
-
-        if(bufferPrimed && lastFrame == null && frameBuffer.isEmpty())
-            bufferPrimed = false;
+        if(lastFrame == null)
+            fillFrameBuffer();
 
         return lastFrame != null;
     }
@@ -568,14 +552,19 @@ public class AudioHandler extends AudioEventAdapter implements AudioSendHandler
     public ByteBuffer provide20MsAudio()
     {
         if(lastFrame == null)
+            fillFrameBuffer();
+
+        if(lastFrame == null)
             return null;
 
         ByteBuffer buffer = ByteBuffer.wrap(lastFrame.getData());
         lastFrameProvideTimeMs = System.currentTimeMillis();
         lastFrame = null;
 
-        if(bufferPrimed && !frameBuffer.isEmpty())
+        if(!frameBuffer.isEmpty())
             lastFrame = frameBuffer.poll();
+
+        fillFrameBuffer();
 
         return buffer;
     }
@@ -598,6 +587,23 @@ public class AudioHandler extends AudioEventAdapter implements AudioSendHandler
         frameBuffer.clear();
         lastFrame = null;
         lastFrameProvideTimeMs = System.currentTimeMillis();
-        bufferPrimed = false;
+    }
+
+    private void fillFrameBuffer()
+    {
+        AudioFrame provided;
+        while((provided = audioPlayer.provide()) != null)
+        {
+            if(lastFrame == null)
+                lastFrame = provided;
+            else if(frameBuffer.size() < JITTER_MAX_FRAMES)
+                frameBuffer.offer(provided);
+
+            if(lastFrame != null && frameBuffer.size() >= JITTER_TARGET_FRAMES)
+                break;
+        }
+
+        if(lastFrame == null && !frameBuffer.isEmpty())
+            lastFrame = frameBuffer.poll();
     }
 }
