@@ -18,6 +18,7 @@ package com.jagrosh.jmusicbot.utils;
 import com.jagrosh.jmusicbot.JMusicBot;
 import com.jagrosh.jmusicbot.entities.Prompt;
 import java.io.*;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
@@ -298,6 +299,24 @@ public class OtherUtil
             }
         }
         return builder.toString();
+    }
+
+    public static boolean isUrl(String input)
+    {
+        if(input == null)
+            return false;
+        String trimmed = input.trim();
+        if(trimmed.isEmpty())
+            return false;
+        try
+        {
+            URI uri = new URI(trimmed);
+            return uri.getScheme() != null && uri.getHost() != null;
+        }
+        catch(URISyntaxException e)
+        {
+            return false;
+        }
     }
 
     /**

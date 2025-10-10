@@ -20,9 +20,11 @@ import com.jagrosh.jmusicbot.queue.AbstractQueue;
 import com.jagrosh.jmusicbot.settings.QueueType;
 import com.jagrosh.jmusicbot.utils.TimeUtil;
 import com.jagrosh.jmusicbot.settings.RepeatMode;
+import com.sedmelluq.discord.lavaplayer.player.AudioLoadResultHandler;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
 import com.sedmelluq.discord.lavaplayer.player.event.AudioEventAdapter;
 import com.sedmelluq.discord.lavaplayer.tools.FriendlyException;
+import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackEndReason;
 import com.sedmelluq.discord.lavaplayer.track.playback.AudioFrame;
@@ -32,6 +34,7 @@ import java.util.List;
 import java.util.Set;
 import com.jagrosh.jmusicbot.settings.Settings;
 import com.jagrosh.jmusicbot.utils.FormatUtil;
+import com.jagrosh.jmusicbot.utils.OtherUtil;
 import com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioTrack;
 import java.nio.ByteBuffer;
 import net.dv8tion.jda.api.EmbedBuilder;
@@ -40,7 +43,9 @@ import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.audio.AudioSendHandler;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.entities.User;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
@@ -202,8 +207,157 @@ public class AudioHandler extends AudioEventAdapter implements AudioSendHandler
     }
 
     @Override
-    public void onTrackException(AudioPlayer player, AudioTrack track, FriendlyException exception) {
-        LoggerFactory.getLogger("AudioHandler").error("Track " + track.getIdentifier() + " has failed to play", exception);
+    public void onTrackException(AudioPlayer player, AudioTrack track, FriendlyException exception)
+    {
+        Logger logger = LoggerFactory.getLogger("AudioHandler");
+        logger.error("Track " + track.getIdentifier() + " has failed to play", exception);
+
+        RequestMetadata metadata = track.getUserData(RequestMetadata.class);
+        Guild guild = manager.getBot().getJDA() == null ? null : manager.getBot().getJDA().getGuildById(guildId);
+        TextChannel channel = resolveNotificationChannel(guild, metadata);
+
+        if(channel != null)
+        {
+            String message = manager.getBot().getConfig().getError() + " **" + FormatUtil.filter(track.getInfo().title)
+                    + "** の再生中にエラーが発生しました";
+            if(exception.getMessage() != null && !exception.getMessage().isEmpty())
+                message += ": " + FormatUtil.filter(exception.getMessage());
+            channel.sendMessage(FormatUtil.filter(message)).queue();
+        }
+
+        if(guild != null && shouldRetryWithSearch(metadata))
+        {
+            String query = metadata.requestInfo.query.trim();
+            if(channel != null)
+            {
+                channel.sendMessage(FormatUtil.filter(manager.getBot().getConfig().getWarning()
+                        + " 別の検索結果を探しています... (`" + query + "`)")).queue();
+            }
+
+            RequestMetadata retryMetadata = metadata.withRequestInfo(metadata.requestInfo.withFallbackAttempted());
+            manager.getBot().getPlayerManager().loadItemOrdered(guild, "ytsearch:" + query,
+                    new FallbackResultHandler(guild, channel, retryMetadata, query));
+        }
+    }
+
+    private boolean shouldRetryWithSearch(RequestMetadata metadata)
+    {
+        if(metadata == null || metadata.requestInfo == null)
+            return false;
+        if(!metadata.requestInfo.canRetrySearch())
+            return false;
+        String query = metadata.requestInfo.query;
+        if(query == null)
+            return false;
+        query = query.trim();
+        if(query.isEmpty())
+            return false;
+        return !OtherUtil.isUrl(query);
+    }
+
+    private TextChannel resolveNotificationChannel(Guild guild, RequestMetadata metadata)
+    {
+        if(guild == null)
+            return null;
+
+        if(metadata != null && metadata.requestInfo != null && metadata.requestInfo.channelId != 0L)
+        {
+            TextChannel channel = guild.getTextChannelById(metadata.requestInfo.channelId);
+            if(channel != null)
+                return channel;
+        }
+
+        Settings settings = manager.getBot().getSettingsManager().getSettings(guildId);
+        return settings == null ? null : settings.getTextChannel(guild);
+    }
+
+    private class FallbackResultHandler implements AudioLoadResultHandler
+    {
+        private final Guild guild;
+        private final TextChannel channel;
+        private final RequestMetadata metadata;
+        private final String query;
+
+        private FallbackResultHandler(Guild guild, TextChannel channel, RequestMetadata metadata, String query)
+        {
+            this.guild = guild;
+            this.channel = channel;
+            this.metadata = metadata;
+            this.query = query;
+        }
+
+        @Override
+        public void trackLoaded(AudioTrack track)
+        {
+            queueFallbackTrack(track);
+        }
+
+        @Override
+        public void playlistLoaded(AudioPlaylist playlist)
+        {
+            AudioTrack single = playlist.getSelectedTrack();
+            if(single == null && !playlist.getTracks().isEmpty())
+                single = playlist.getTracks().get(0);
+
+            if(single != null)
+                queueFallbackTrack(single);
+            else if(channel != null)
+                channel.sendMessage(FormatUtil.filter(manager.getBot().getConfig().getWarning()
+                        + " 代替候補が見つかりませんでした (`" + query + "`)")).queue();
+        }
+
+        @Override
+        public void noMatches()
+        {
+            if(channel != null)
+                channel.sendMessage(FormatUtil.filter(manager.getBot().getConfig().getWarning()
+                        + " `" + query + "` に一致する代替結果は見つかりませんでした。"))
+                        .queue();
+        }
+
+        @Override
+        public void loadFailed(FriendlyException exception)
+        {
+            if(channel != null)
+            {
+                String message = manager.getBot().getConfig().getError() + " 代替検索の読み込みに失敗しました";
+                if(exception.getMessage() != null && !exception.getMessage().isEmpty())
+                    message += ": " + FormatUtil.filter(exception.getMessage());
+                channel.sendMessage(message).queue();
+            }
+        }
+
+        private void queueFallbackTrack(AudioTrack track)
+        {
+            if(track == null)
+                return;
+
+            RequestMetadata effectiveMetadata = metadata;
+            long start = 0L;
+            if(metadata != null && metadata.requestInfo != null)
+            {
+                start = metadata.requestInfo.startTimestamp;
+                effectiveMetadata = metadata.withRequestInfo(metadata.requestInfo.withResolvedUrl(track.getInfo().uri));
+            }
+            track.setPosition(start);
+            QueuedTrack queued = new QueuedTrack(track, effectiveMetadata);
+            int position = addTrackToFront(queued);
+            if(channel != null)
+            {
+                if(position == -1)
+                {
+                    channel.sendMessage(FormatUtil.filter(manager.getBot().getConfig().getSuccess()
+                            + " 代替トラック **" + track.getInfo().title + "** の再生を開始しました。"))
+                            .queue();
+                }
+                else
+                {
+                    channel.sendMessage(FormatUtil.filter(manager.getBot().getConfig().getSuccess()
+                            + " 代替トラック **" + track.getInfo().title + "** をキューの先頭に追加しました。"))
+                            .queue();
+                }
+            }
+        }
     }
 
     @Override
