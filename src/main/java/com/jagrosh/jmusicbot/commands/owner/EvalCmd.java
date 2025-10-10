@@ -35,7 +35,7 @@ public class EvalCmd extends OwnerCommand
     {
         this.bot = bot;
         this.name = "eval";
-        this.help = "evaluates nashorn code";
+        this.help = "Nashorn コードを評価します";
         this.aliases = bot.getConfig().getAliases(this.name);
         this.engine = bot.getConfig().getEvalEngine();
         this.guildOnly = false;
@@ -47,8 +47,7 @@ public class EvalCmd extends OwnerCommand
         ScriptEngine se = new ScriptEngineManager().getEngineByName(engine);
         if(se == null)
         {
-            event.replyError("The eval engine provided in the config (`"+engine+"`) doesn't exist. This could be due to an invalid "
-                    + "engine name, or the engine not existing in your version of java (`"+System.getProperty("java.version")+"`).");
+            event.replyError("設定で指定された eval エンジン (`"+engine+"`) が見つかりません。エンジン名が正しくないか、使用中の Java (`"+System.getProperty("java.version")+"`) にそのエンジンが存在しない可能性があります。");
             return;
         }
         se.put("bot", bot);
@@ -60,11 +59,11 @@ public class EvalCmd extends OwnerCommand
         }
         try
         {
-            event.reply(event.getClient().getSuccess()+" Evaluated Successfully:\n```\n"+se.eval(event.getArgs())+" ```");
+            event.reply(event.getClient().getSuccess()+" 評価に成功しました:\n```\n"+se.eval(event.getArgs())+" ```");
         } 
         catch(Exception e)
         {
-            event.reply(event.getClient().getError()+" An exception was thrown:\n```\n"+e+" ```");
+            event.reply(event.getClient().getError()+" 例外が発生しました:\n```\n"+e+" ```");
         }
     }
     
