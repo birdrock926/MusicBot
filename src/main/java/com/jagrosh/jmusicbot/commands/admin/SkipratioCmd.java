@@ -29,7 +29,7 @@ public class SkipratioCmd extends AdminCommand
     public SkipratioCmd(Bot bot)
     {
         this.name = "setskip";
-        this.help = "sets a server-specific skip percentage";
+        this.help = "サーバーごとのスキップ割合を設定します";
         this.arguments = "<0 - 100>";
         this.aliases = bot.getConfig().getAliases(this.name);
     }
@@ -42,16 +42,16 @@ public class SkipratioCmd extends AdminCommand
             int val = Integer.parseInt(event.getArgs().endsWith("%") ? event.getArgs().substring(0,event.getArgs().length()-1) : event.getArgs());
             if( val < 0 || val > 100)
             {
-                event.replyError("The provided value must be between 0 and 100!");
+                event.replyError("入力できる値は 0 から 100 の間です！");
                 return;
             }
             Settings s = event.getClient().getSettingsFor(event.getGuild());
             s.setSkipRatio(val / 100.0);
-            event.replySuccess("Skip percentage has been set to `" + val + "%` of listeners on *" + event.getGuild().getName() + "*");
+            event.replySuccess("*" + event.getGuild().getName() + "* では、リスナーの `" + val + "%` がスキップ投票を行う必要があります");
         }
         catch(NumberFormatException ex)
         {
-            event.replyError("Please include an integer between 0 and 100 (default is 55). This number is the percentage of listening users that must vote to skip a song.");
+            event.replyError("0 から 100 までの整数を入力してください（既定値は 55）。この数値は曲をスキップするために投票が必要なリスナーの割合です。");
         }
     }
 }

@@ -45,10 +45,24 @@
             <version>4.4.1_353</version>
         </dependency>
         <dependency>
-            <groupId>com.jagrosh</groupId>
-            <artifactId>jda-utilities</artifactId>
-            <version>3.0.5</version>
-            <type>pom</type>
+            <groupId>com.github.jagrosh.JDA-Utilities</groupId>
+            <artifactId>jda-utilities-command</artifactId>
+            <version>08bf3c3f89</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.jagrosh.JDA-Utilities</groupId>
+            <artifactId>jda-utilities-commons</artifactId>
+            <version>08bf3c3f89</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.jagrosh.JDA-Utilities</groupId>
+            <artifactId>jda-utilities-menu</artifactId>
+            <version>08bf3c3f89</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.jagrosh.JDA-Utilities</groupId>
+            <artifactId>jda-utilities-examples</artifactId>
+            <version>08bf3c3f89</version>
         </dependency>
 
         <!-- Music Dependencies -->

@@ -149,9 +149,9 @@ public class JMusicBot
         }
         catch (LoginException ex)
         {
-            prompt.alert(Prompt.Level.ERROR, "JMusicBot", ex + "\nPlease make sure you are "
-                    + "editing the correct config.txt file, and that you have used the "
-                    + "correct token (not the 'secret'!)\nConfig Location: " + config.getConfigLocation());
+            prompt.alert(Prompt.Level.ERROR, "JMusicBot", ex + "\n正しい config.txt を編集し、"
+                    + "適切なトークン（'secret'ではありません）を使用しているか確認してください。"
+                    + "\nConfig Location: " + config.getConfigLocation());
             System.exit(1);
         }
         catch(IllegalArgumentException ex)
@@ -172,8 +172,8 @@ public class JMusicBot
     {
         // instantiate about command
         AboutCommand aboutCommand = new AboutCommand(Color.BLUE.brighter(),
-                                "a music bot that is [easy to host yourself!](https://github.com/jagrosh/MusicBot) (v" + OtherUtil.getCurrentVersion() + ")",
-                                new String[]{"High-quality music playback", "FairQueue™ Technology", "Easy to host yourself"},
+                                "[簡単に自分でホストできる](https://github.com/jagrosh/MusicBot) 音楽ボットです (v" + OtherUtil.getCurrentVersion() + ")",
+                                new String[]{"高品質な音楽再生", "FairQueue™ テクノロジー", "セルフホストが簡単"},
                                 RECOMMENDED_PERMS);
         aboutCommand.setIsAuthor(false);
         aboutCommand.setReplacementCharacter("\uD83C\uDFB6"); // 🎶
