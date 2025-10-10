@@ -37,6 +37,7 @@ import com.jagrosh.jmusicbot.utils.FormatUtil;
 import com.jagrosh.jmusicbot.utils.OtherUtil;
 import com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioTrack;
 import java.nio.ByteBuffer;
+import java.util.concurrent.TimeUnit;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.MessageBuilder;
@@ -59,14 +60,20 @@ public class AudioHandler extends AudioEventAdapter implements AudioSendHandler
     public final static String STOP_EMOJI  = "\u23F9"; // ⏹
 
 
+    private static final Logger LOG = LoggerFactory.getLogger(AudioHandler.class);
+    private static final long STUCK_RECHECK_DELAY_MS = 750L;
+    private static final long RECENT_FRAME_WINDOW_MS = 700L;
+    private static final long STUCK_POSITION_TOLERANCE_MS = 250L;
+
     private final List<AudioTrack> defaultQueue = new LinkedList<>();
     private final Set<String> votes = new HashSet<>();
-    
+
     private final PlayerManager manager;
     private final AudioPlayer audioPlayer;
     private final long guildId;
-    
+
     private AudioFrame lastFrame;
+    private volatile long lastFrameProvideTimeMs;
     private AbstractQueue<QueuedTrack> queue;
 
     protected AudioHandler(PlayerManager manager, Guild guild, AudioPlayer player)
@@ -76,6 +83,7 @@ public class AudioHandler extends AudioEventAdapter implements AudioSendHandler
         this.guildId = guild.getIdLong();
 
         this.setQueueType(manager.getBot().getSettingsManager().getSettings(guildId).getQueueType());
+        clearFrameState();
     }
 
     public void setQueueType(QueueType type)
@@ -119,6 +127,7 @@ public class AudioHandler extends AudioEventAdapter implements AudioSendHandler
         defaultQueue.clear();
         audioPlayer.stopTrack();
         //current = null;
+        clearFrameState();
     }
     
     public boolean isMusicPlaying(JDA jda)
@@ -174,8 +183,9 @@ public class AudioHandler extends AudioEventAdapter implements AudioSendHandler
     
     // Audio Events
     @Override
-    public void onTrackEnd(AudioPlayer player, AudioTrack track, AudioTrackEndReason endReason) 
+    public void onTrackEnd(AudioPlayer player, AudioTrack track, AudioTrackEndReason endReason)
     {
+        clearFrameState();
         RepeatMode repeatMode = manager.getBot().getSettingsManager().getSettings(guildId).getRepeatMode();
         // if the track ended normally, and we're in repeat mode, re-add it to the queue
         if(endReason==AudioTrackEndReason.FINISHED && repeatMode != RepeatMode.OFF)
@@ -209,8 +219,7 @@ public class AudioHandler extends AudioEventAdapter implements AudioSendHandler
     @Override
     public void onTrackException(AudioPlayer player, AudioTrack track, FriendlyException exception)
     {
-        Logger logger = LoggerFactory.getLogger("AudioHandler");
-        logger.error("Track " + track.getIdentifier() + " has failed to play", exception);
+        LOG.error("Track {} has failed to play", track.getIdentifier(), exception);
 
         RequestMetadata metadata = track.getUserData(RequestMetadata.class);
         Guild guild = manager.getBot().getJDA() == null ? null : manager.getBot().getJDA().getGuildById(guildId);
@@ -243,8 +252,32 @@ public class AudioHandler extends AudioEventAdapter implements AudioSendHandler
     @Override
     public void onTrackStuck(AudioPlayer player, AudioTrack track, long thresholdMs)
     {
-        Logger logger = LoggerFactory.getLogger("AudioHandler");
-        logger.warn("Track {} got stuck ({}ms), attempting recovery", track.getIdentifier(), thresholdMs);
+        LOG.warn("Track {} reported stuck ({}ms). Verifying before recovery.", track.getIdentifier(), thresholdMs);
+
+        long stuckAtPosition = track.getPosition();
+        manager.getBot().getThreadpool().schedule(() ->
+                verifyAndRecoverFromStuck(player, track, stuckAtPosition),
+                STUCK_RECHECK_DELAY_MS, TimeUnit.MILLISECONDS);
+    }
+
+    private void verifyAndRecoverFromStuck(AudioPlayer player, AudioTrack track, long stuckAtPosition)
+    {
+        if(player.getPlayingTrack() != track)
+        {
+            LOG.debug("Ignoring stuck event for {} because another track is now playing.", track.getIdentifier());
+            return;
+        }
+
+        long sinceLastFrame = System.currentTimeMillis() - lastFrameProvideTimeMs;
+        long currentPosition = track.getPosition();
+        long advanced = Math.max(0L, currentPosition - stuckAtPosition);
+
+        if(sinceLastFrame < RECENT_FRAME_WINDOW_MS || advanced > STUCK_POSITION_TOLERANCE_MS)
+        {
+            LOG.info("Track {} recovered after stuck notification ({}ms since last frame, advanced {}ms).",
+                    track.getIdentifier(), sinceLastFrame, advanced);
+            return;
+        }
 
         RequestMetadata metadata = track.getUserData(RequestMetadata.class);
         Guild guild = manager.getBot().getJDA() == null ? null : manager.getBot().getJDA().getGuildById(guildId);
@@ -257,18 +290,17 @@ public class AudioHandler extends AudioEventAdapter implements AudioSendHandler
             if(channel != null)
             {
                 channel.sendMessage(FormatUtil.filter(manager.getBot().getConfig().getWarning()
-                        + " 再生が途切れたため曲を再読み込みします..."))
-                        .queue();
+                        + " 再生が途切れたため曲を再読み込みします...")).queue();
             }
 
             AudioTrack clone = track.makeClone();
             if(clone != null)
             {
-                long position = track.getPosition();
-                clone.setPosition(position);
+                if(clone.isSeekable())
+                    clone.setPosition(currentPosition);
                 RequestMetadata updated = metadata.withRequestInfo(metadata.requestInfo.withStuckRetry());
                 clone.setUserData(updated);
-                lastFrame = null;
+                clearFrameState();
                 player.playTrack(clone);
                 return;
             }
@@ -277,11 +309,10 @@ public class AudioHandler extends AudioEventAdapter implements AudioSendHandler
         if(channel != null)
         {
             channel.sendMessage(FormatUtil.filter(manager.getBot().getConfig().getWarning()
-                    + " 再生が復旧できなかったため、次の曲に進みます。"))
-                    .queue();
+                    + " 再生が復旧できなかったため、次の曲に進みます。")).queue();
         }
 
-        lastFrame = null;
+        clearFrameState();
         player.stopTrack();
     }
 
@@ -406,10 +437,11 @@ public class AudioHandler extends AudioEventAdapter implements AudioSendHandler
     }
 
     @Override
-    public void onTrackStart(AudioPlayer player, AudioTrack track) 
+    public void onTrackStart(AudioPlayer player, AudioTrack track)
     {
         votes.clear();
         manager.getBot().getNowplayingHandler().onTrackUpdate(track);
+        clearFrameState();
     }
 
     
@@ -502,16 +534,24 @@ public class AudioHandler extends AudioEventAdapter implements AudioSendHandler
     }*/
     
     @Override
-    public boolean canProvide() 
+    public boolean canProvide()
     {
         lastFrame = audioPlayer.provide();
+        if(lastFrame != null)
+        {
+            AudioTrack playingTrack = audioPlayer.getPlayingTrack();
+            if(playingTrack != null)
+                lastFrameProvideTimeMs = System.currentTimeMillis();
+        }
         return lastFrame != null;
     }
 
     @Override
-    public ByteBuffer provide20MsAudio() 
+    public ByteBuffer provide20MsAudio()
     {
-        return ByteBuffer.wrap(lastFrame.getData());
+        ByteBuffer buffer = lastFrame == null ? null : ByteBuffer.wrap(lastFrame.getData());
+        lastFrame = null;
+        return buffer;
     }
 
     @Override
@@ -525,5 +565,11 @@ public class AudioHandler extends AudioEventAdapter implements AudioSendHandler
     private Guild guild(JDA jda)
     {
         return jda.getGuildById(guildId);
+    }
+
+    private void clearFrameState()
+    {
+        lastFrame = null;
+        lastFrameProvideTimeMs = System.currentTimeMillis();
     }
 }
