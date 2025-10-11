@@ -36,7 +36,7 @@ public class QueuedTrack implements Queueable
         this.track.setUserData(rm == null ? RequestMetadata.EMPTY : rm);
 
         this.requestMetadata = rm;
-        if (this.track.isSeekable() && rm != null)
+        if (this.track.isSeekable() && rm != null && rm.requestInfo != null)
             track.setPosition(rm.requestInfo.startTimestamp);
     }
     

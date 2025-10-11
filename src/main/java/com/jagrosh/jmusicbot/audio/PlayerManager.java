@@ -18,6 +18,7 @@ package com.jagrosh.jmusicbot.audio;
 import com.dunctebot.sourcemanagers.DuncteBotSources;
 import com.jagrosh.jmusicbot.Bot;
 import com.sedmelluq.discord.lavaplayer.container.MediaContainerRegistry;
+import com.sedmelluq.discord.lavaplayer.player.AudioConfiguration;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
 import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager;
 import com.sedmelluq.discord.lavaplayer.source.AudioSourceManagers;
@@ -29,6 +30,7 @@ import com.sedmelluq.discord.lavaplayer.source.nico.NicoAudioSourceManager;
 import com.sedmelluq.discord.lavaplayer.source.soundcloud.SoundCloudAudioSourceManager;
 import com.sedmelluq.discord.lavaplayer.source.twitch.TwitchStreamAudioSourceManager;
 import com.sedmelluq.discord.lavaplayer.source.vimeo.VimeoAudioSourceManager;
+import com.sedmelluq.discord.lavaplayer.track.playback.NonAllocatingAudioFrameBuffer;
 import dev.lavalink.youtube.YoutubeAudioSourceManager;
 import net.dv8tion.jda.api.entities.Guild;
 
@@ -47,6 +49,12 @@ public class PlayerManager extends DefaultAudioPlayerManager
     
     public void init()
     {
+        AudioConfiguration configuration = getConfiguration();
+        configuration.setOpusEncodingQuality(10);
+        configuration.setResamplingQuality(AudioConfiguration.ResamplingQuality.HIGH);
+        configuration.setFrameBufferFactory(NonAllocatingAudioFrameBuffer::new);
+        setFrameBufferDuration(1000);
+
         TransformativeAudioSourceManager.createTransforms(bot.getConfig().getTransforms()).forEach(t -> registerSourceManager(t));
 
         YoutubeAudioSourceManager yt = new YoutubeAudioSourceManager(true);
