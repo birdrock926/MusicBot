@@ -66,9 +66,9 @@ public class AudioHandler extends AudioEventAdapter implements AudioSendHandler
     private static final long STUCK_RECHECK_DELAY_MS = 750L;
     private static final long RECENT_FRAME_WINDOW_MS = 700L;
     private static final long STUCK_POSITION_TOLERANCE_MS = 250L;
-    // Keep roughly 120ms of decoded audio ready so brief hiccups don't surface as pops.
-    private static final int JITTER_TARGET_FRAMES = 6;
-    private static final int JITTER_MAX_FRAMES = 18;
+    // Keep roughly 400ms of decoded audio ready so brief hiccups don't surface as pops.
+    private static final int JITTER_TARGET_FRAMES = 20;
+    private static final int JITTER_MAX_FRAMES = 50;
 
     private final List<AudioTrack> defaultQueue = new LinkedList<>();
     private final Set<String> votes = new HashSet<>();

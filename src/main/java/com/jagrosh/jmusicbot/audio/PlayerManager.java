@@ -53,6 +53,7 @@ public class PlayerManager extends DefaultAudioPlayerManager
         configuration.setOpusEncodingQuality(10);
         configuration.setResamplingQuality(AudioConfiguration.ResamplingQuality.HIGH);
         configuration.setFrameBufferFactory(NonAllocatingAudioFrameBuffer::new);
+        setFrameBufferDuration(1000);
 
         TransformativeAudioSourceManager.createTransforms(bot.getConfig().getTransforms()).forEach(t -> registerSourceManager(t));
 
