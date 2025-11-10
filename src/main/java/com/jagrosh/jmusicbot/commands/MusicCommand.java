@@ -44,18 +44,43 @@ public abstract class MusicCommand extends Command
     }
     
     @Override
-    protected void execute(CommandEvent event) 
+    protected void execute(CommandEvent event)
     {
         Settings settings = event.getClient().getSettingsFor(event.getGuild());
         TextChannel tchannel = settings.getTextChannel(event.getGuild());
         if(tchannel!=null && !event.getTextChannel().equals(tchannel))
         {
-            try 
+            // Check if user is in a voice channel and the text channel is associated with that voice channel
+            GuildVoiceState userVoiceState = event.getMember().getVoiceState();
+            boolean isVoiceChannelTextChannel = false;
+
+            if(userVoiceState != null && userVoiceState.inAudioChannel())
             {
-                event.getMessage().delete().queue();
-            } catch(PermissionException ignore){}
-            event.replyInDm(event.getClient().getError()+" このコマンドは "+tchannel.getAsMention()+" でのみ使用できます！");
-            return;
+                AudioChannel userChannel = userVoiceState.getChannel();
+                // Check if the current text channel is associated with the user's voice channel
+                // In Discord, voice channels can have associated text channels
+                if(userChannel != null)
+                {
+                    // Check if the text channel is in the same category as the voice channel
+                    // or if it's the voice channel's associated text channel
+                    if(event.getTextChannel().getParentCategory() != null
+                            && userChannel.getParentCategory() != null
+                            && event.getTextChannel().getParentCategory().equals(userChannel.getParentCategory()))
+                    {
+                        isVoiceChannelTextChannel = true;
+                    }
+                }
+            }
+
+            if(!isVoiceChannelTextChannel)
+            {
+                try
+                {
+                    event.getMessage().delete().queue();
+                } catch(PermissionException ignore){}
+                event.replyInDm(event.getClient().getError()+" このコマンドは "+tchannel.getAsMention()+" でのみ使用できます！");
+                return;
+            }
         }
         bot.getPlayerManager().setUpHandler(event.getGuild()); // no point constantly checking for this later
         if(bePlaying && !((AudioHandler)event.getGuild().getAudioManager().getSendingHandler()).isMusicPlaying(event.getJDA()))
