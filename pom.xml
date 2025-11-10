@@ -31,6 +31,11 @@
             <url>https://m2.duncte123.dev/releases</url>
         </repository>
         <repository>
+            <id>chew</id>
+            <name>m2-chew</name>
+            <url>https://m2.chew.pro/releases</url>
+        </repository>
+        <repository>
             <id>arbjergDev</id>
             <name>Lavalink Repository</name>
             <url>https://maven.lavalink.dev/releases</url>
@@ -42,27 +47,27 @@
         <dependency>
             <groupId>net.dv8tion</groupId>
             <artifactId>JDA</artifactId>
-            <version>4.4.1_353</version>
+            <version>5.5.1</version>
         </dependency>
         <dependency>
-            <groupId>com.github.jagrosh.JDA-Utilities</groupId>
-            <artifactId>jda-utilities-command</artifactId>
-            <version>08bf3c3f89</version>
+            <groupId>pw.chew</groupId>
+            <artifactId>jda-chewtils-command</artifactId>
+            <version>2.1</version>
         </dependency>
         <dependency>
-            <groupId>com.github.jagrosh.JDA-Utilities</groupId>
-            <artifactId>jda-utilities-commons</artifactId>
-            <version>08bf3c3f89</version>
+            <groupId>pw.chew</groupId>
+            <artifactId>jda-chewtils-commons</artifactId>
+            <version>2.1</version>
         </dependency>
         <dependency>
-            <groupId>com.github.jagrosh.JDA-Utilities</groupId>
-            <artifactId>jda-utilities-menu</artifactId>
-            <version>08bf3c3f89</version>
+            <groupId>pw.chew</groupId>
+            <artifactId>jda-chewtils-menu</artifactId>
+            <version>2.1</version>
         </dependency>
         <dependency>
-            <groupId>com.github.jagrosh.JDA-Utilities</groupId>
-            <artifactId>jda-utilities-examples</artifactId>
-            <version>08bf3c3f89</version>
+            <groupId>pw.chew</groupId>
+            <artifactId>jda-chewtils-examples</artifactId>
+            <version>2.1</version>
         </dependency>
 
         <!-- Music Dependencies -->
@@ -91,7 +96,7 @@
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
-            <version>1.2.13</version>
+            <version>1.5.12</version>
         </dependency>
         <dependency>
             <groupId>com.typesafe</groupId>
@@ -167,3 +172,7 @@
         <maven.compiler.target>11</maven.compiler.target>
     </properties>
 </project>
+
+
+
+

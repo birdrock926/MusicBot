@@ -42,12 +42,15 @@ import java.nio.ByteBuffer;
 import java.util.concurrent.TimeUnit;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
-import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.audio.AudioSendHandler;
 import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.entities.MessageEmbed;
+import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder;
+import net.dv8tion.jda.api.utils.messages.MessageCreateData;
+import net.dv8tion.jda.api.utils.messages.MessageEditBuilder;
+import net.dv8tion.jda.api.utils.messages.MessageEditData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -138,7 +141,7 @@ public class AudioHandler extends AudioEventAdapter implements AudioSendHandler
     
     public boolean isMusicPlaying(JDA jda)
     {
-        return guild(jda).getSelfMember().getVoiceState().inVoiceChannel() && audioPlayer.getPlayingTrack()!=null;
+        return guild(jda).getSelfMember().getVoiceState().inAudioChannel() && audioPlayer.getPlayingTrack()!=null;
     }
     
     public Set<String> getVotes()
@@ -452,14 +455,12 @@ public class AudioHandler extends AudioEventAdapter implements AudioSendHandler
 
     
     // Formatting
-    public Message getNowPlaying(JDA jda)
+    public NowPlayingMessage getNowPlaying(JDA jda)
     {
         if(isMusicPlaying(jda))
         {
             Guild guild = guild(jda);
             AudioTrack track = audioPlayer.getPlayingTrack();
-            MessageBuilder mb = new MessageBuilder();
-            mb.append(FormatUtil.filter(manager.getBot().getConfig().getSuccess()+" **Now Playing in "+guild.getSelfMember().getVoiceState().getChannel().getAsMention()+"...**"));
             EmbedBuilder eb = new EmbedBuilder();
             eb.setColor(guild.getSelfMember().getColor());
             RequestMetadata rm = getRequestMetadata();
@@ -495,21 +496,24 @@ public class AudioHandler extends AudioEventAdapter implements AudioSendHandler
                     + " `[" + TimeUtil.formatTime(track.getPosition()) + "/" + TimeUtil.formatTime(track.getDuration()) + "]` "
                     + FormatUtil.volumeIcon(audioPlayer.getVolume()));
             
-            return mb.setEmbeds(eb.build()).build();
+            String content = FormatUtil.filter(
+                    manager.getBot().getConfig().getSuccess()+" **Now Playing in "
+                    + guild.getSelfMember().getVoiceState().getChannel().getAsMention()+"...**");
+            return new NowPlayingMessage(content, eb.build());
         }
         else return null;
     }
     
-    public Message getNoMusicPlaying(JDA jda)
+    public NowPlayingMessage getNoMusicPlaying(JDA jda)
     {
         Guild guild = guild(jda);
-        return new MessageBuilder()
-                .setContent(FormatUtil.filter(manager.getBot().getConfig().getSuccess()+" **Now Playing...**"))
-                .setEmbeds(new EmbedBuilder()
+        String content = FormatUtil.filter(manager.getBot().getConfig().getSuccess()+" **Now Playing...**");
+        MessageEmbed embed = new EmbedBuilder()
                 .setTitle("No music playing")
                 .setDescription(STOP_EMOJI+" "+FormatUtil.progressBar(-1)+" "+FormatUtil.volumeIcon(audioPlayer.getVolume()))
                 .setColor(guild.getSelfMember().getColor())
-                .build()).build();
+                .build();
+        return new NowPlayingMessage(content, embed);
     }
 
     public String getStatusEmoji()
@@ -606,4 +610,43 @@ public class AudioHandler extends AudioEventAdapter implements AudioSendHandler
         if(lastFrame == null && !frameBuffer.isEmpty())
             lastFrame = frameBuffer.poll();
     }
+
+    public static class NowPlayingMessage
+    {
+        private final String content;
+        private final MessageEmbed embed;
+
+        public NowPlayingMessage(String content, MessageEmbed embed)
+        {
+            this.content = content;
+            this.embed = embed;
+        }
+
+        public String getContent()
+        {
+            return content;
+        }
+
+        public MessageEmbed getEmbed()
+        {
+            return embed;
+        }
+
+        public MessageCreateData toCreateData()
+        {
+            return new MessageCreateBuilder()
+                    .setContent(content)
+                    .setEmbeds(embed)
+                    .build();
+        }
+
+        public MessageEditData toEditData()
+        {
+            return new MessageEditBuilder()
+                    .setContent(content)
+                    .setEmbeds(embed)
+                    .build();
+        }
+    }
 }
+
