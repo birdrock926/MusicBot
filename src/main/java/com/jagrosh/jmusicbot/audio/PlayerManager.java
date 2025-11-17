@@ -32,6 +32,12 @@ import com.sedmelluq.discord.lavaplayer.source.twitch.TwitchStreamAudioSourceMan
 import com.sedmelluq.discord.lavaplayer.source.vimeo.VimeoAudioSourceManager;
 import com.sedmelluq.discord.lavaplayer.track.playback.NonAllocatingAudioFrameBuffer;
 import dev.lavalink.youtube.YoutubeAudioSourceManager;
+import dev.lavalink.youtube.clients.Android;
+import dev.lavalink.youtube.clients.AndroidVr;
+import dev.lavalink.youtube.clients.Ios;
+import dev.lavalink.youtube.clients.Music;
+import dev.lavalink.youtube.clients.Web;
+import dev.lavalink.youtube.clients.WebEmbedded;
 import net.dv8tion.jda.api.entities.Guild;
 
 /**
@@ -57,7 +63,16 @@ public class PlayerManager extends DefaultAudioPlayerManager
 
         TransformativeAudioSourceManager.createTransforms(bot.getConfig().getTransforms()).forEach(t -> registerSourceManager(t));
 
-        YoutubeAudioSourceManager yt = new YoutubeAudioSourceManager(true);
+        YoutubeAudioSourceManager yt = new YoutubeAudioSourceManager(
+                true,
+                true,
+                true,
+                new Android(),    // Prefer mobile clients; they still provide signed URLs
+                new Ios(),
+                new Web(),
+                new WebEmbedded(),
+                new AndroidVr(),
+                new Music());     // Music client keeps ytmsearch available
         yt.setPlaylistPageCount(bot.getConfig().getMaxYTPlaylistPages());
         registerSourceManager(yt);
 
