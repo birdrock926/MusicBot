@@ -45,7 +45,8 @@ import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.audio.AudioSendHandler;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.User;
-import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
+import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder;
 import net.dv8tion.jda.api.utils.messages.MessageCreateData;
@@ -232,7 +233,7 @@ public class AudioHandler extends AudioEventAdapter implements AudioSendHandler
 
         RequestMetadata metadata = track.getUserData(RequestMetadata.class);
         Guild guild = manager.getBot().getJDA() == null ? null : manager.getBot().getJDA().getGuildById(guildId);
-        TextChannel channel = resolveNotificationChannel(guild, metadata);
+        GuildMessageChannel channel = resolveNotificationChannel(guild, metadata);
 
         if(channel != null)
         {
@@ -290,7 +291,7 @@ public class AudioHandler extends AudioEventAdapter implements AudioSendHandler
 
         RequestMetadata metadata = track.getUserData(RequestMetadata.class);
         Guild guild = manager.getBot().getJDA() == null ? null : manager.getBot().getJDA().getGuildById(guildId);
-        TextChannel channel = resolveNotificationChannel(guild, metadata);
+        GuildMessageChannel channel = resolveNotificationChannel(guild, metadata);
 
         boolean canRetry = metadata != null && metadata.requestInfo != null && metadata.requestInfo.canRetryStuck();
 
@@ -340,16 +341,16 @@ public class AudioHandler extends AudioEventAdapter implements AudioSendHandler
         return !OtherUtil.isUrl(query);
     }
 
-    private TextChannel resolveNotificationChannel(Guild guild, RequestMetadata metadata)
+    private GuildMessageChannel resolveNotificationChannel(Guild guild, RequestMetadata metadata)
     {
         if(guild == null)
             return null;
 
         if(metadata != null && metadata.requestInfo != null && metadata.requestInfo.channelId != 0L)
         {
-            TextChannel channel = guild.getTextChannelById(metadata.requestInfo.channelId);
-            if(channel != null)
-                return channel;
+            GuildChannel channel = guild.getGuildChannelById(metadata.requestInfo.channelId);
+            if(channel instanceof GuildMessageChannel)
+                return (GuildMessageChannel) channel;
         }
 
         Settings settings = manager.getBot().getSettingsManager().getSettings(guildId);
@@ -359,11 +360,11 @@ public class AudioHandler extends AudioEventAdapter implements AudioSendHandler
     private class FallbackResultHandler implements AudioLoadResultHandler
     {
         private final Guild guild;
-        private final TextChannel channel;
+        private final GuildMessageChannel channel;
         private final RequestMetadata metadata;
         private final String query;
 
-        private FallbackResultHandler(Guild guild, TextChannel channel, RequestMetadata metadata, String query)
+        private FallbackResultHandler(Guild guild, GuildMessageChannel channel, RequestMetadata metadata, String query)
         {
             this.guild = guild;
             this.channel = channel;

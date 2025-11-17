@@ -118,7 +118,7 @@ public class PlayCmd extends MusicCommand
             int pos = handler.addTrack(new QueuedTrack(track, RequestMetadata.fromResultHandler(track, event)))+1;
             String addMsg = FormatUtil.filter(event.getClient().getSuccess()+" **"+track.getInfo().title
                     +"** (`"+ TimeUtil.formatTime(track.getDuration())+"`) を"+(pos==0?"再生開始しました":" キューの"+pos+"番目に追加しました"));
-            if(playlist==null || !event.getSelfMember().hasPermission(event.getTextChannel(), Permission.MESSAGE_ADD_REACTION))
+            if(playlist==null || !event.getSelfMember().hasPermission(event.getGuildChannel(), Permission.MESSAGE_ADD_REACTION))
                 m.editMessage(addMsg).queue();
             else
             {

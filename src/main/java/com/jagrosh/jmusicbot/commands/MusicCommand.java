@@ -21,9 +21,9 @@ import com.jagrosh.jmusicbot.Bot;
 import com.jagrosh.jmusicbot.settings.Settings;
 import com.jagrosh.jmusicbot.audio.AudioHandler;
 import net.dv8tion.jda.api.entities.GuildVoiceState;
-import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
 import net.dv8tion.jda.api.entities.channel.middleman.AudioChannel;
+import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
 import net.dv8tion.jda.api.exceptions.PermissionException;
 
 /**
@@ -47,14 +47,15 @@ public abstract class MusicCommand extends Command
     protected void execute(CommandEvent event) 
     {
         Settings settings = event.getClient().getSettingsFor(event.getGuild());
-        TextChannel tchannel = settings.getTextChannel(event.getGuild());
-        if(tchannel!=null && !event.getTextChannel().equals(tchannel))
+        GuildMessageChannel allowedChannel = settings.getTextChannel(event.getGuild());
+        GuildMessageChannel currentChannel = event.getGuildChannel();
+        if(allowedChannel!=null && currentChannel!=null && !currentChannel.equals(allowedChannel))
         {
             try 
             {
                 event.getMessage().delete().queue();
             } catch(PermissionException ignore){}
-            event.replyInDm(event.getClient().getError()+" このコマンドは "+tchannel.getAsMention()+" でのみ使用できます！");
+            event.replyInDm(event.getClient().getError()+" このコマンドは "+allowedChannel.getAsMention()+" でのみ使用できます！");
             return;
         }
         bot.getPlayerManager().setUpHandler(event.getGuild()); // no point constantly checking for this later

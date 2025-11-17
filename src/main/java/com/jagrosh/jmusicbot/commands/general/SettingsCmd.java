@@ -24,8 +24,9 @@ import com.jagrosh.jmusicbot.settings.Settings;
 import com.jagrosh.jmusicbot.utils.FormatUtil;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Role;
-import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.entities.channel.ChannelType;
 import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
+import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
 import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder;
 
 /**
@@ -50,12 +51,19 @@ public class SettingsCmd extends Command
         Settings s = event.getClient().getSettingsFor(event.getGuild());
         MessageCreateBuilder builder = new MessageCreateBuilder()
                 .addContent(EMOJI + " **" + FormatUtil.filter(event.getSelfUser().getName()) + "** settings:");
-        TextChannel tchan = s.getTextChannel(event.getGuild());
+        GuildMessageChannel tchan = s.getTextChannel(event.getGuild());
         VoiceChannel vchan = s.getVoiceChannel(event.getGuild());
         Role role = s.getRole(event.getGuild());
+        String textChannelDisplay;
+        if(tchan == null)
+            textChannelDisplay = "Any";
+        else if(tchan.getType() == ChannelType.VOICE || tchan.getType() == ChannelType.STAGE)
+            textChannelDisplay = tchan.getAsMention()+" (Voice)";
+        else
+            textChannelDisplay = "**#" + tchan.getName() + "**";
         EmbedBuilder ebuilder = new EmbedBuilder()
                 .setColor(event.getSelfMember().getColor())
-                .setDescription("Text Channel: " + (tchan == null ? "Any" : "**#" + tchan.getName() + "**")
+                .setDescription("Text Channel: " + textChannelDisplay
                         + "\nVoice Channel: " + (vchan == null ? "Any" : vchan.getAsMention())
                         + "\nDJ Role: " + (role == null ? "None" : "**" + role.getName() + "**")
                         + "\nCustom Prefix: " + (s.getPrefix() == null ? "None" : "`" + s.getPrefix() + "`")

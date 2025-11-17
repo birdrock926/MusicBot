@@ -81,7 +81,8 @@ public class DebugCmd extends OwnerCommand
         sb.append("\n```");
         
         if(event.isFromType(ChannelType.PRIVATE) 
-                || event.getSelfMember().hasPermission(event.getTextChannel(), Permission.MESSAGE_ATTACH_FILES))
+                || (event.getGuildChannel() != null
+                    && event.getSelfMember().hasPermission(event.getGuildChannel(), Permission.MESSAGE_ATTACH_FILES)))
             event.getChannel()
                     .sendFiles(FileUpload.fromData(sb.toString().getBytes(StandardCharsets.UTF_8), "debug_information.txt"))
                     .queue();

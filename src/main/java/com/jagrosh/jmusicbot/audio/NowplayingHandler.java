@@ -27,7 +27,8 @@ import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
+import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
 import net.dv8tion.jda.api.exceptions.PermissionException;
 import net.dv8tion.jda.api.exceptions.RateLimitedException;
 
@@ -74,12 +75,13 @@ public class NowplayingHandler
                 continue;
             }
             Pair<Long,Long> pair = lastNP.get(guildId);
-            TextChannel tc = guild.getTextChannelById(pair.getKey());
-            if(tc==null)
+            GuildChannel channel = guild.getGuildChannelById(pair.getKey());
+            if(!(channel instanceof GuildMessageChannel))
             {
                 toRemove.add(guildId);
                 continue;
             }
+            GuildMessageChannel tc = (GuildMessageChannel) channel;
             AudioHandler handler = (AudioHandler)guild.getAudioManager().getSendingHandler();
             AudioHandler.NowPlayingMessage message = handler.getNowPlaying(bot.getJDA());
             if(message==null)
