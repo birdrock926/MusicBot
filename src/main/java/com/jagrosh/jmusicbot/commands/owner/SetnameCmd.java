@@ -38,19 +38,15 @@ public class SetnameCmd extends OwnerCommand
     @Override
     protected void execute(CommandEvent event) 
     {
-        try 
-        {
-            String oldname = event.getSelfUser().getName();
-            event.getSelfUser().getManager().setName(event.getArgs()).complete(false);
-            event.reply(event.getClient().getSuccess()+" 名前を `"+oldname+"` から `"+event.getArgs()+"` に変更しました");
-        } 
-        catch(RateLimitedException e) 
-        {
-            event.reply(event.getClient().getError()+" 名前は 1 時間に 2 回までしか変更できません！");
-        }
-        catch(Exception e) 
-        {
-            event.reply(event.getClient().getError()+" その名前は無効です！");
-        }
+        String oldname = event.getSelfUser().getName();
+        event.getSelfUser().getManager().setName(event.getArgs()).queue(
+            v -> event.reply(event.getClient().getSuccess()+" 名前を `"+oldname+"` から `"+event.getArgs()+"` に変更しました"),
+            err -> {
+                if(err instanceof RateLimitedException)
+                    event.reply(event.getClient().getError()+" 名前は 1 時間に 2 回までしか変更できません！");
+                else
+                    event.reply(event.getClient().getError()+" その名前は無効です！");
+            }
+        );
     }
 }

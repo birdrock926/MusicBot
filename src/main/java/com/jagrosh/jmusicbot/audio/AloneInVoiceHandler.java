@@ -62,10 +62,8 @@ public class AloneInVoiceHandler
                 toRemove.add(entrySet.getKey());
                 continue;
             }
-
             ((AudioHandler) guild.getAudioManager().getSendingHandler()).stopAndClear();
-            guild.getAudioManager().closeAudioConnection();
-
+            bot.closeAudioConnection(guild.getIdLong());
             toRemove.add(entrySet.getKey());
         }
         toRemove.forEach(id -> aloneSince.remove(id));

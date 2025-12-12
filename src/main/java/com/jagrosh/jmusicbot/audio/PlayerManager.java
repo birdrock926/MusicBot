@@ -61,8 +61,10 @@ public class PlayerManager extends DefaultAudioPlayerManager
         configuration.setFrameBufferFactory(NonAllocatingAudioFrameBuffer::new);
         setFrameBufferDuration(1000);
 
-        TransformativeAudioSourceManager.createTransforms(bot.getConfig().getTransforms()).forEach(t -> registerSourceManager(t));
+        // Allow custom URL transforms (eg. sharing links -> canonical YouTube URLs) before registering sources
+        TransformativeAudioSourceManager.createTransforms(bot.getConfig().getTransforms()).forEach(this::registerSourceManager);
 
+        // Use multiple official YouTube clients; mobile clients still provide signed URLs, Music keeps ytsearch
         YoutubeAudioSourceManager yt = new YoutubeAudioSourceManager(
                 true,
                 true,
@@ -72,7 +74,7 @@ public class PlayerManager extends DefaultAudioPlayerManager
                 new Web(),
                 new WebEmbedded(),
                 new AndroidVr(),
-                new Music());     // Music client keeps ytmsearch available
+                new Music());     // Music client keeps ytsearch available
         yt.setPlaylistPageCount(bot.getConfig().getMaxYTPlaylistPages());
         registerSourceManager(yt);
 

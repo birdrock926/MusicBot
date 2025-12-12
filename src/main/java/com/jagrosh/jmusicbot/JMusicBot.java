@@ -63,6 +63,14 @@ public class JMusicBot
                 case "generate-config":
                     BotConfig.writeDefaultConfig();
                     return;
+                case "configure":
+                    Prompt configPrompt = new Prompt("JMusicBot");
+                    BotConfig cfg = new BotConfig(configPrompt);
+                    cfg.load();
+                    return;
+                case "multi":
+                    startMultiBots();
+                    return;
                 default:
             }
         startBot();
@@ -70,30 +78,55 @@ public class JMusicBot
     
     private static void startBot()
     {
-        // create prompt to handle startup
         Prompt prompt = new Prompt("JMusicBot");
-        
+        BotConfig cfg = new BotConfig(prompt);
+        if(!initConfig(cfg, prompt))
+            return;
+        startBots(cfg, prompt);
+    }
+    
+    private static void startMultiBots()
+    {
+        Prompt prompt = new Prompt("JMusicBot");
+        BotConfig cfg = new BotConfig(prompt);
+        if(!initConfig(cfg, prompt))
+            return;
+        startBots(cfg, prompt);
+    }
+
+    private static boolean initConfig(BotConfig config, Prompt prompt)
+    {
         // startup checks
         OtherUtil.checkVersion(prompt);
         OtherUtil.checkJavaVersion(prompt);
         
         // load config
-        BotConfig config = new BotConfig(prompt);
         config.load();
         if(!config.isValid())
-            return;
+            return false;
         LOG.info("Loaded config from " + config.getConfigLocation());
 
         // set log level from config
         ((ch.qos.logback.classic.Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME)).setLevel(
                 Level.toLevel(config.getLogLevel(), Level.INFO));
-        
-        // set up the listener
+        return true;
+    }
+
+    private static void startBots(BotConfig cfg, Prompt prompt)
+    {
+        int idx = 1;
+        for(String token : cfg.getTokens())
+        {
+            startBotWithToken(cfg, prompt, token, idx++);
+        }
+    }
+
+    private static void startBotWithToken(BotConfig config, Prompt prompt, String token, int index)
+    {
         EventWaiter waiter = new EventWaiter();
         SettingsManager settings = new SettingsManager();
         Bot bot = new Bot(waiter, config, settings);
         CommandClient client = createCommandClient(config, settings, bot);
-        
         
         if(!prompt.isNoGUI())
         {
@@ -113,58 +146,52 @@ public class JMusicBot
             }
         }
         
-        // attempt to log in and start
         try
         {
-            JDA jda = JDABuilder.create(config.getToken(), Arrays.asList(INTENTS))
+            JDA jda = JDABuilder.create(token, Arrays.asList(INTENTS))
                     .enableCache(CacheFlag.MEMBER_OVERRIDES, CacheFlag.VOICE_STATE)
                     .disableCache(CacheFlag.ACTIVITY, CacheFlag.CLIENT_STATUS, CacheFlag.EMOJI, CacheFlag.ONLINE_STATUS)
                     .setActivity(config.isGameNone() ? null : Activity.playing("loading..."))
-                    .setStatus(config.getStatus()==OnlineStatus.INVISIBLE || config.getStatus()==OnlineStatus.OFFLINE 
-                            ? OnlineStatus.INVISIBLE : OnlineStatus.DO_NOT_DISTURB)
+                    .setStatus(config.getStatus() == OnlineStatus.UNKNOWN
+                            ? OnlineStatus.DO_NOT_DISTURB
+                            : config.getStatus())
                     .addEventListeners(client, waiter, new Listener(bot))
                     .setBulkDeleteSplittingEnabled(true)
                     .build();
             bot.setJDA(jda);
 
-            // check if something about the current startup is not supported
             String unsupportedReason = OtherUtil.getUnsupportedBotReason(jda);
             if (unsupportedReason != null)
             {
-                prompt.alert(Prompt.Level.ERROR, "JMusicBot", "JMusicBot cannot be run on this Discord bot: " + unsupportedReason);
-                try{ Thread.sleep(5000);}catch(InterruptedException ignored){} // this is awful but until we have a better way...
+                prompt.alert(Prompt.Level.ERROR, "JMusicBot-"+index, "JMusicBot cannot be run on this Discord bot: " + unsupportedReason);
+                try{ Thread.sleep(5000);}catch(InterruptedException ignored){} 
                 jda.shutdown();
                 System.exit(1);
             }
             
-            // other check that will just be a warning now but may be required in the future
-            // check if the user has changed the prefix and provide info about the 
-            // message content intent
             if(!"@mention".equals(config.getPrefix()))
             {
-                LOG.info("JMusicBot", "You currently have a custom prefix set. "
+                LOG.info("You currently have a custom prefix set. "
                         + "If your prefix is not working, make sure that the 'MESSAGE CONTENT INTENT' is Enabled "
-                        + "on https://discord.com/developers/applications/" + jda.getSelfUser().getId() + "/bot");
+                        + "on https://discord.com/developers/applications/{}/bot",
+                        jda.getSelfUser().getId());
             }
         }
         catch (InvalidTokenException ex)
         {
-            prompt.alert(Prompt.Level.ERROR, "JMusicBot", ex + "\n正しい config.txt を編集し、"
+            prompt.alert(Prompt.Level.ERROR, "JMusicBot-"+index, ex + "\n正しい config.txt を編集し、"
                     + "適切なトークン（'secret'ではありません）を使用しているか確認してください。"
                     + "\nConfig Location: " + config.getConfigLocation());
-            System.exit(1);
         }
         catch(IllegalArgumentException ex)
         {
-            prompt.alert(Prompt.Level.ERROR, "JMusicBot", "Some aspect of the configuration is "
+            prompt.alert(Prompt.Level.ERROR, "JMusicBot-"+index, "Some aspect of the configuration is "
                     + "invalid: " + ex + "\nConfig Location: " + config.getConfigLocation());
-            System.exit(1);
         }
         catch(ErrorResponseException ex)
         {
-            prompt.alert(Prompt.Level.ERROR, "JMusicBot", ex + "\nInvalid reponse returned when "
+            prompt.alert(Prompt.Level.ERROR, "JMusicBot-"+index, ex + "\nInvalid reponse returned when "
                     + "attempting to connect, please make sure you're connected to the internet");
-            System.exit(1);
         }
     }
     

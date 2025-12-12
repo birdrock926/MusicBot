@@ -41,7 +41,7 @@ public class StopCmd extends DJCommand
     {
         AudioHandler handler = (AudioHandler)event.getGuild().getAudioManager().getSendingHandler();
         handler.stopAndClear();
-        event.getGuild().getAudioManager().closeAudioConnection();
+        bot.closeAudioConnection(event.getGuild().getIdLong());
         event.reply(event.getClient().getSuccess()+" プレイヤーを停止し、キューをクリアしました。");
     }
 }
