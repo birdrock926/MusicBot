@@ -38,6 +38,10 @@ public abstract class MusicCommand extends Command
     protected final Bot bot;
     protected boolean bePlaying;
     protected boolean beListening;
+    // 追加ガード: コマンド実行者がボットと同じVCにいることを要求するか
+    protected boolean requireSameChannel;
+    // 追加ガード: ボットが既にVC接続済みでなければ無視するか
+    protected boolean requireConnected;
     private static final Map<Long, Long> FULL_NOTICE_TS = new ConcurrentHashMap<>();
     
     public MusicCommand(Bot bot)
@@ -68,6 +72,7 @@ public abstract class MusicCommand extends Command
         try
         {
             String botId = bot.getJDA().getSelfUser().getId();
+            GuildVoiceState userState = event.getMember().getVoiceState();
 
             bot.getPlayerManager().setUpHandler(event.getGuild()); // no point constantly checking for this later
 
@@ -75,6 +80,17 @@ public abstract class MusicCommand extends Command
             AudioChannel selfChannel = event.getGuild().getSelfMember().getVoiceState().getChannel();
             if(selfChannel != null && VoiceLockManager.isLockedAndNotOwner(event.getGuild().getIdLong(), selfChannel.getIdLong(), botId))
                 return;
+            // ボットが未接続なら実行しない（例: dc/stopが別インスタンスに反応するのを防ぐ）
+            if(requireConnected && selfChannel == null)
+                return;
+            // コマンド実行者が別VCにいる場合は無視
+            if(requireSameChannel)
+            {
+                if(userState == null || !userState.inAudioChannel())
+                    return;
+                if(selfChannel != null && !userState.getChannel().equals(selfChannel))
+                    return;
+            }
             // 未接続で、かつリスニング不要のコマンドなら無視（例: stop/dc の無駄反応防止）
             if(selfChannel == null && !beListening)
                 return;
@@ -84,7 +100,6 @@ public abstract class MusicCommand extends Command
                 AudioChannel current = event.getGuild().getSelfMember().getVoiceState().getChannel();
                 if(current==null)
                     current = settings.getVoiceChannel(event.getGuild());
-                GuildVoiceState userState = event.getMember().getVoiceState();
                 if(!userState.inAudioChannel() || userState.isDeafened())
                 {
                     event.replyError("このコマンドを使用するには、いずれかのボイスチャンネルに参加している必要があります！");

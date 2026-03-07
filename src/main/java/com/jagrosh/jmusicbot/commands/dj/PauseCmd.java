@@ -33,6 +33,8 @@ public class PauseCmd extends DJCommand
         this.help = "再生中の曲を一時停止します";
         this.aliases = bot.getConfig().getAliases(this.name);
         this.bePlaying = true;
+        this.requireSameChannel = true;
+        this.requireConnected = true;
     }
 
     @Override

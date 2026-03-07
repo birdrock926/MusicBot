@@ -37,6 +37,8 @@ public class SkipCmd extends MusicCommand
         this.aliases = OtherUtil.mergeCommandAliases(bot.getConfig().getAliases(this.name), "s");
         this.beListening = true;
         this.bePlaying = true;
+        this.requireSameChannel = true;
+        this.requireConnected = true;
     }
 
     @Override

@@ -35,6 +35,8 @@ public class ForceskipCmd extends DJCommand
         this.help = "再生中の曲をスキップします";
         this.aliases = bot.getConfig().getAliases(this.name);
         this.bePlaying = true;
+        this.requireSameChannel = true;
+        this.requireConnected = true;
     }
 
     @Override

@@ -34,6 +34,8 @@ public class StopCmd extends DJCommand
         this.help = "再生中の曲を停止し、キューを空にします";
         this.aliases = OtherUtil.mergeCommandAliases(bot.getConfig().getAliases(this.name), "dc");
         this.bePlaying = false;
+        this.requireConnected = true;     // どこかに接続していないボットは反応しない
+        this.requireSameChannel = true;   // 実行者と同じVCを担当しているボットのみ反応
     }
 
     @Override
