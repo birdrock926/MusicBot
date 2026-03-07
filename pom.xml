@@ -88,7 +88,7 @@
         <dependency>
             <groupId>dev.lavalink.youtube</groupId>
             <artifactId>common</artifactId>
-            <version>c97016c55280af59ddf799b7f0c20630e6472fd4-SNAPSHOT</version>
+            <version>1.18.0</version>
         </dependency>
 	<dependency>
 	    <groupId>com.github.jagrosh</groupId>
@@ -186,5 +186,4 @@
         <maven.compiler.target>11</maven.compiler.target>
     </properties>
 </project>
-
 
