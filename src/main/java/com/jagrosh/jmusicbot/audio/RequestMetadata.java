@@ -29,14 +29,19 @@ import java.util.regex.Pattern;
  */
 public class RequestMetadata
 {
-    public static final RequestMetadata EMPTY = new RequestMetadata(null, null);
+    public static final RequestMetadata EMPTY = new RequestMetadata((User)null, null);
     
     public final UserInfo user;
     public final RequestInfo requestInfo;
-    
+
     public RequestMetadata(User user, RequestInfo requestInfo)
     {
-        this.user = user == null ? null : new UserInfo(user.getIdLong(), user.getName(), user.getDiscriminator(), user.getEffectiveAvatarUrl());
+        this(user == null ? null : new UserInfo(user.getIdLong(), user.getName(), user.getDiscriminator(), user.getEffectiveAvatarUrl()), requestInfo);
+    }
+
+    private RequestMetadata(UserInfo user, RequestInfo requestInfo)
+    {
+        this.user = user;
         this.requestInfo = requestInfo;
     }
     
@@ -47,24 +52,59 @@ public class RequestMetadata
 
     public static RequestMetadata fromResultHandler(AudioTrack track, CommandEvent event)
     {
-        return new RequestMetadata(event.getAuthor(), new RequestInfo(event.getArgs(), track.getInfo().uri));
+        return new RequestMetadata(event.getAuthor(), new RequestInfo(event.getArgs(), track.getInfo().uri, event.getChannel().getIdLong()));
     }
-    
+
+    public RequestMetadata withRequestInfo(RequestInfo requestInfo)
+    {
+        return new RequestMetadata(user, requestInfo);
+    }
+
     public static class RequestInfo
     {
         public final String query, url;
         public final long startTimestamp;
+        public final long channelId;
+        public final boolean searchFallbackAttempted;
+        public final int stuckResets;
 
-        public RequestInfo(String query, String url)
+        public RequestInfo(String query, String url, long channelId)
         {
-            this(query, url, tryGetTimestamp(query));
+            this(query, url, tryGetTimestamp(query), channelId, false, 0);
         }
 
-        private RequestInfo(String query, String url, long startTimestamp)
+        private RequestInfo(String query, String url, long startTimestamp, long channelId, boolean searchFallbackAttempted, int stuckResets)
         {
             this.url = url;
             this.query = query;
             this.startTimestamp = startTimestamp;
+            this.channelId = channelId;
+            this.searchFallbackAttempted = searchFallbackAttempted;
+            this.stuckResets = stuckResets;
+        }
+        public RequestInfo withFallbackAttempted()
+        {
+            return new RequestInfo(query, url, startTimestamp, channelId, true, stuckResets);
+        }
+
+        public boolean canRetrySearch()
+        {
+            return !searchFallbackAttempted;
+        }
+
+        public RequestInfo withResolvedUrl(String resolvedUrl)
+        {
+            return new RequestInfo(query, resolvedUrl, startTimestamp, channelId, searchFallbackAttempted, stuckResets);
+        }
+
+        public boolean canRetryStuck()
+        {
+            return stuckResets < 2;
+        }
+
+        public RequestInfo withStuckRetry()
+        {
+            return new RequestInfo(query, url, startTimestamp, channelId, searchFallbackAttempted, stuckResets + 1);
         }
 
         private static final Pattern youtubeTimestampPattern = Pattern.compile("youtu(?:\\.be|be\\..+)/.*\\?.*(?!.*list=)t=([\\dhms]+)");

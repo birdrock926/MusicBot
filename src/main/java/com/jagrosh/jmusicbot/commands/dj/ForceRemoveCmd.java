@@ -39,7 +39,7 @@ public class ForceRemoveCmd extends DJCommand
     {
         super(bot);
         this.name = "forceremove";
-        this.help = "removes all entries by a user from the queue";
+        this.help = "指定したユーザーの曲をキューからすべて削除します";
         this.arguments = "<user>";
         this.aliases = bot.getConfig().getAliases(this.name);
         this.beListening = false;
@@ -52,14 +52,14 @@ public class ForceRemoveCmd extends DJCommand
     {
         if (event.getArgs().isEmpty())
         {
-            event.replyError("You need to mention a user!");
+            event.replyError("ユーザーを指定してください！");
             return;
         }
 
         AudioHandler handler = (AudioHandler) event.getGuild().getAudioManager().getSendingHandler();
         if (handler.getQueue().isEmpty())
         {
-            event.replyError("There is nothing in the queue!");
+            event.replyError("キューには何もありません！");
             return;
         }
 
@@ -69,7 +69,7 @@ public class ForceRemoveCmd extends DJCommand
 
         if(found.isEmpty())
         {
-            event.replyError("Unable to find the user!");
+            event.replyError("ユーザーが見つかりませんでした！");
             return;
         }
         else if(found.size()>1)
@@ -83,7 +83,7 @@ public class ForceRemoveCmd extends DJCommand
 
             builder
             .setSelection((msg, i) -> removeAllEntries(found.get(i-1).getUser(), event))
-            .setText("Found multiple users:")
+            .setText("複数のユーザーが見つかりました:")
             .setColor(event.getSelfMember().getColor())
             .useNumbers()
             .setUsers(event.getAuthor())
@@ -110,11 +110,11 @@ public class ForceRemoveCmd extends DJCommand
         int count = ((AudioHandler) event.getGuild().getAudioManager().getSendingHandler()).getQueue().removeAll(target.getIdLong());
         if (count == 0)
         {
-            event.replyWarning("**"+target.getName()+"** doesn't have any songs in the queue!");
+            event.replyWarning("**"+target.getName()+"** の曲はキューにありません！");
         }
         else
         {
-            event.replySuccess("Successfully removed `"+count+"` entries from "+FormatUtil.formatUsername(target)+".");
+            event.replySuccess("`"+count+"` 件を " + FormatUtil.formatUsername(target) + " から削除しました。");
         }
     }
 }

@@ -32,9 +32,11 @@ public class ForceskipCmd extends DJCommand
     {
         super(bot);
         this.name = "forceskip";
-        this.help = "skips the current song";
+        this.help = "再生中の曲をスキップします";
         this.aliases = bot.getConfig().getAliases(this.name);
         this.bePlaying = true;
+        this.requireSameChannel = true;
+        this.requireConnected = true;
     }
 
     @Override
@@ -42,8 +44,8 @@ public class ForceskipCmd extends DJCommand
     {
         AudioHandler handler = (AudioHandler)event.getGuild().getAudioManager().getSendingHandler();
         RequestMetadata rm = handler.getRequestMetadata();
-        event.reply(event.getClient().getSuccess()+" Skipped **"+handler.getPlayer().getPlayingTrack().getInfo().title
-                +"** "+(rm.getOwner() == 0L ? "(autoplay)" : "(requested by **" + FormatUtil.formatUsername(rm.user) + "**)"));
+        event.reply(event.getClient().getSuccess()+" **"+handler.getPlayer().getPlayingTrack().getInfo().title
+                +"** をスキップしました " + (rm.getOwner() == 0L ? "(自動再生)" : "(**" + FormatUtil.formatUsername(rm.user) + "** のリクエスト)"));
         handler.getPlayer().stopTrack();
     }
 }

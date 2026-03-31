@@ -35,6 +35,8 @@ public class VolumeCmd extends DJCommand
         this.aliases = bot.getConfig().getAliases(this.name);
         this.help = "sets or shows volume";
         this.arguments = "[0-150]";
+        this.requireSameChannel = true;
+        this.requireConnected = true;
     }
 
     @Override

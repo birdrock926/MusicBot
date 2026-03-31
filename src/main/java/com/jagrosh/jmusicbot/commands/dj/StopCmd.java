@@ -19,6 +19,7 @@ import com.jagrosh.jdautilities.command.CommandEvent;
 import com.jagrosh.jmusicbot.Bot;
 import com.jagrosh.jmusicbot.audio.AudioHandler;
 import com.jagrosh.jmusicbot.commands.DJCommand;
+import com.jagrosh.jmusicbot.utils.OtherUtil;
 
 /**
  *
@@ -30,9 +31,11 @@ public class StopCmd extends DJCommand
     {
         super(bot);
         this.name = "stop";
-        this.help = "stops the current song and clears the queue";
-        this.aliases = bot.getConfig().getAliases(this.name);
+        this.help = "再生中の曲を停止し、キューを空にします";
+        this.aliases = OtherUtil.mergeCommandAliases(bot.getConfig().getAliases(this.name), "dc");
         this.bePlaying = false;
+        this.requireConnected = true;     // どこかに接続していないボットは反応しない
+        this.requireSameChannel = true;   // 実行者と同じVCを担当しているボットのみ反応
     }
 
     @Override
@@ -40,7 +43,7 @@ public class StopCmd extends DJCommand
     {
         AudioHandler handler = (AudioHandler)event.getGuild().getAudioManager().getSendingHandler();
         handler.stopAndClear();
-        event.getGuild().getAudioManager().closeAudioConnection();
-        event.reply(event.getClient().getSuccess()+" The player has stopped and the queue has been cleared.");
+        bot.closeAudioConnection(event.getGuild().getIdLong());
+        event.reply(event.getClient().getSuccess()+" プレイヤーを停止し、キューをクリアしました。");
     }
 }

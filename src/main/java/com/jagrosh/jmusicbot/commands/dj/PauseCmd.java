@@ -30,9 +30,11 @@ public class PauseCmd extends DJCommand
     {
         super(bot);
         this.name = "pause";
-        this.help = "pauses the current song";
+        this.help = "再生中の曲を一時停止します";
         this.aliases = bot.getConfig().getAliases(this.name);
         this.bePlaying = true;
+        this.requireSameChannel = true;
+        this.requireConnected = true;
     }
 
     @Override
@@ -41,10 +43,10 @@ public class PauseCmd extends DJCommand
         AudioHandler handler = (AudioHandler)event.getGuild().getAudioManager().getSendingHandler();
         if(handler.getPlayer().isPaused())
         {
-            event.replyWarning("The player is already paused! Use `"+event.getClient().getPrefix()+"play` to unpause!");
+            event.replyWarning("プレイヤーはすでに一時停止しています！`"+event.getClient().getPrefix()+"play` で再開できます！");
             return;
         }
         handler.getPlayer().setPaused(true);
-        event.replySuccess("Paused **"+handler.getPlayer().getPlayingTrack().getInfo().title+"**. Type `"+event.getClient().getPrefix()+"play` to unpause!");
+        event.replySuccess("**"+handler.getPlayer().getPlayingTrack().getInfo().title+"** を一時停止しました。`"+event.getClient().getPrefix()+"play` で再開できます！");
     }
 }

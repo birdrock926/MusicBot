@@ -20,12 +20,13 @@ import java.util.concurrent.TimeUnit;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.User;
-import net.dv8tion.jda.api.entities.VoiceChannel;
-import net.dv8tion.jda.api.events.ReadyEvent;
-import net.dv8tion.jda.api.events.ShutdownEvent;
+import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.events.session.ReadyEvent;
+import net.dv8tion.jda.api.events.session.ShutdownEvent;
 import net.dv8tion.jda.api.events.guild.GuildJoinEvent;
 import net.dv8tion.jda.api.events.guild.voice.GuildVoiceUpdateEvent;
-import net.dv8tion.jda.api.events.message.guild.GuildMessageDeleteEvent;
+import net.dv8tion.jda.api.events.message.MessageDeleteEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -53,7 +54,6 @@ public class Listener extends ListenerAdapter
             log.warn("This bot is not on any guilds! Use the following link to add the bot to your guilds!");
             log.warn(event.getJDA().getInviteUrl(JMusicBot.RECOMMENDED_PERMS));
         }
-        credit(event.getJDA());
         event.getJDA().getGuilds().forEach((guild) -> 
         {
             try
@@ -67,29 +67,14 @@ public class Listener extends ListenerAdapter
             }
             catch(Exception ignore) {}
         });
-        if(bot.getConfig().useUpdateAlerts())
-        {
-            bot.getThreadpool().scheduleWithFixedDelay(() -> 
-            {
-                try
-                {
-                    User owner = bot.getJDA().retrieveUserById(bot.getConfig().getOwnerId()).complete();
-                    String currentVersion = OtherUtil.getCurrentVersion();
-                    String latestVersion = OtherUtil.getLatestVersion();
-                    if(latestVersion!=null && !currentVersion.equalsIgnoreCase(latestVersion))
-                    {
-                        String msg = String.format(OtherUtil.NEW_VERSION_AVAILABLE, currentVersion, latestVersion);
-                        owner.openPrivateChannel().queue(pc -> pc.sendMessage(msg).queue());
-                    }
-                }
-                catch(Exception ignored) {} // ignored
-            }, 0, 24, TimeUnit.HOURS);
-        }
+        // update alerts disabled
     }
     
     @Override
-    public void onGuildMessageDelete(GuildMessageDeleteEvent event) 
+    public void onMessageDelete(@NotNull MessageDeleteEvent event)
     {
+        if(!event.isFromGuild())
+            return;
         bot.getNowplayingHandler().onMessageDelete(event.getGuild(), event.getMessageIdLong());
     }
 
@@ -108,19 +93,6 @@ public class Listener extends ListenerAdapter
     @Override
     public void onGuildJoin(GuildJoinEvent event) 
     {
-        credit(event.getJDA());
-    }
-    
-    // make sure people aren't adding clones to dbots
-    private void credit(JDA jda)
-    {
-        Guild dbots = jda.getGuildById(110373943822540800L);
-        if(dbots==null)
-            return;
-        if(bot.getConfig().getDBots())
-            return;
-        jda.getTextChannelById(119222314964353025L)
-                .sendMessage("This account is running JMusicBot. Please do not list bot clones on this server, <@"+bot.getConfig().getOwnerId()+">.").complete();
-        dbots.leave().queue();
     }
 }
+

@@ -32,7 +32,7 @@ public class QueueTypeCmd extends AdminCommand
     {
         super();
         this.name = "queuetype";
-        this.help = "changes the queue type";
+        this.help = "キューの方式を変更します";
         this.arguments = "[" + String.join("|", QueueType.getNames()) + "]";
         this.aliases = bot.getConfig().getAliases(this.name);
     }
@@ -47,7 +47,7 @@ public class QueueTypeCmd extends AdminCommand
         if (args.isEmpty())
         {
             QueueType currentType = settings.getQueueType();
-            event.reply(currentType.getEmoji() + " Current queue type is: `" + currentType.getUserFriendlyName() + "`.");
+            event.reply(currentType.getEmoji() + " 現在のキュー方式は `" + currentType.getUserFriendlyName() + "` です。");
             return;
         }
 
@@ -57,7 +57,7 @@ public class QueueTypeCmd extends AdminCommand
         }
         catch (IllegalArgumentException e)
         {
-            event.replyError("Invalid queue type. Valid types are: [" + String.join("|", QueueType.getNames()) + "]");
+            event.replyError("無効なキュー方式です。有効な値: [" + String.join("|", QueueType.getNames()) + "]");
             return;
         }
 
@@ -70,6 +70,6 @@ public class QueueTypeCmd extends AdminCommand
                 handler.setQueueType(value);
         }
 
-        event.reply(value.getEmoji() + " Queue type was set to `" + value.getUserFriendlyName() + "`.");
+        event.reply(value.getEmoji() + " キュー方式を `" + value.getUserFriendlyName() + "` に設定しました。");
     }
 }

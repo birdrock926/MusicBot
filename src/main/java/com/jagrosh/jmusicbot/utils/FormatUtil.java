@@ -18,9 +18,10 @@ package com.jagrosh.jmusicbot.utils;
 import com.jagrosh.jmusicbot.audio.RequestMetadata.UserInfo;
 import java.util.List;
 import net.dv8tion.jda.api.entities.Role;
-import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.entities.User;
-import net.dv8tion.jda.api.entities.VoiceChannel;
+import net.dv8tion.jda.api.entities.channel.ChannelType;
+import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
+import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
 
 /**
  *
@@ -72,33 +73,39 @@ public class FormatUtil {
         return "\uD83D\uDD0A";     // 🔊
     }
     
-    public static String listOfTChannels(List<TextChannel> list, String query)
+    public static String listOfMessageChannels(List<? extends GuildMessageChannel> list, String query)
     {
-        String out = " Multiple text channels found matching \""+query+"\":";
+        String out = " 複数のメッセージチャンネルが \""+query+"\" に一致しました:";
         for(int i=0; i<6 && i<list.size(); i++)
-            out+="\n - "+list.get(i).getName()+" (<#"+list.get(i).getId()+">)";
+        {
+            GuildMessageChannel channel = list.get(i);
+            ChannelType typeEnum = channel.getType();
+            String type = typeEnum == ChannelType.VOICE || typeEnum == ChannelType.STAGE
+                    ? " (Voice)" : "";
+            out+="\n - "+channel.getName()+type+" ("+channel.getAsMention()+")";
+        }
         if(list.size()>6)
-            out+="\n**And "+(list.size()-6)+" more...**";
+            out+="\n**さらに "+(list.size()-6)+" 件あります...**";
         return out;
     }
     
     public static String listOfVChannels(List<VoiceChannel> list, String query)
     {
-        String out = " Multiple voice channels found matching \""+query+"\":";
+        String out = " 複数のボイスチャンネルが \""+query+"\" に一致しました:";
         for(int i=0; i<6 && i<list.size(); i++)
             out+="\n - "+list.get(i).getAsMention()+" (ID:"+list.get(i).getId()+")";
         if(list.size()>6)
-            out+="\n**And "+(list.size()-6)+" more...**";
+            out+="\n**さらに "+(list.size()-6)+" 件あります...**";
         return out;
     }
     
     public static String listOfRoles(List<Role> list, String query)
     {
-        String out = " Multiple roles found matching \""+query+"\":";
+        String out = " 複数のロールが \""+query+"\" に一致しました:";
         for(int i=0; i<6 && i<list.size(); i++)
             out+="\n - "+list.get(i).getName()+" (ID:"+list.get(i).getId()+")";
         if(list.size()>6)
-            out+="\n**And "+(list.size()-6)+" more...**";
+            out+="\n**さらに "+(list.size()-6)+" 件あります...**";
         return out;
     }
     

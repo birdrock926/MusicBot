@@ -27,7 +27,8 @@ import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
+import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
 import net.dv8tion.jda.api.exceptions.PermissionException;
 import net.dv8tion.jda.api.exceptions.RateLimitedException;
 
@@ -54,7 +55,7 @@ public class NowplayingHandler
     
     public void setLastNPMessage(Message m)
     {
-        lastNP.put(m.getGuild().getIdLong(), new Pair<>(m.getTextChannel().getIdLong(), m.getIdLong()));
+        lastNP.put(m.getGuild().getIdLong(), new Pair<>(m.getChannel().getIdLong(), m.getIdLong()));
     }
     
     public void clearLastNPMessage(Guild guild)
@@ -74,23 +75,24 @@ public class NowplayingHandler
                 continue;
             }
             Pair<Long,Long> pair = lastNP.get(guildId);
-            TextChannel tc = guild.getTextChannelById(pair.getKey());
-            if(tc==null)
+            GuildChannel channel = guild.getGuildChannelById(pair.getKey());
+            if(!(channel instanceof GuildMessageChannel))
             {
                 toRemove.add(guildId);
                 continue;
             }
+            GuildMessageChannel tc = (GuildMessageChannel) channel;
             AudioHandler handler = (AudioHandler)guild.getAudioManager().getSendingHandler();
-            Message msg = handler.getNowPlaying(bot.getJDA());
-            if(msg==null)
+            AudioHandler.NowPlayingMessage message = handler.getNowPlaying(bot.getJDA());
+            if(message==null)
             {
-                msg = handler.getNoMusicPlaying(bot.getJDA());
+                message = handler.getNoMusicPlaying(bot.getJDA());
                 toRemove.add(guildId);
             }
-            try 
+            try
             {
-                tc.editMessageById(pair.getValue(), msg).queue(m->{}, t -> lastNP.remove(guildId));
-            } 
+                tc.editMessageById(pair.getValue(), message.toEditData()).queue(m->{}, t -> lastNP.remove(guildId));
+            }
             catch(Exception e) 
             {
                 toRemove.add(guildId);
@@ -105,7 +107,7 @@ public class NowplayingHandler
         // update bot status if applicable
         if(bot.getConfig().getSongInStatus())
         {
-            if(track!=null && bot.getJDA().getGuilds().stream().filter(g -> g.getSelfMember().getVoiceState().inVoiceChannel()).count()<=1)
+            if(track!=null && bot.getJDA().getGuilds().stream().filter(g -> g.getSelfMember().getVoiceState().inAudioChannel()).count()<=1)
                 bot.getJDA().getPresence().setActivity(Activity.listening(track.getInfo().title));
             else
                 bot.resetGame();
@@ -121,3 +123,4 @@ public class NowplayingHandler
             lastNP.remove(guild.getIdLong());
     }
 }
+

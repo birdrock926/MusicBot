@@ -25,6 +25,7 @@ import com.jagrosh.jmusicbot.audio.PlayerManager;
 import com.jagrosh.jmusicbot.gui.GUI;
 import com.jagrosh.jmusicbot.playlist.PlaylistLoader;
 import com.jagrosh.jmusicbot.settings.SettingsManager;
+import com.jagrosh.jmusicbot.utils.VoiceLockManager;
 import java.util.Objects;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Activity;
@@ -114,6 +115,7 @@ public class Bot
         Guild guild = jda.getGuildById(guildId);
         if(guild!=null)
             threadpool.submit(() -> guild.getAudioManager().closeAudioConnection());
+        VoiceLockManager.releaseForGuild(guildId);
     }
     
     public void resetGame()
@@ -140,6 +142,7 @@ public class Bot
                     ah.stopAndClear();
                     ah.getPlayer().destroy();
                 }
+                VoiceLockManager.releaseForGuild(g.getIdLong());
             });
             jda.shutdown();
         }

@@ -15,6 +15,7 @@
  */
 package com.jagrosh.jmusicbot.commands.admin;
 
+import java.util.ArrayList;
 import java.util.List;
 import com.jagrosh.jdautilities.command.CommandEvent;
 import com.jagrosh.jdautilities.commons.utils.FinderUtil;
@@ -22,7 +23,9 @@ import com.jagrosh.jmusicbot.Bot;
 import com.jagrosh.jmusicbot.commands.AdminCommand;
 import com.jagrosh.jmusicbot.settings.Settings;
 import com.jagrosh.jmusicbot.utils.FormatUtil;
-import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
+import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
 
 /**
  *
@@ -33,7 +36,7 @@ public class SettcCmd extends AdminCommand
     public SettcCmd(Bot bot)
     {
         this.name = "settc";
-        this.help = "sets the text channel for music commands";
+        this.help = "音楽コマンドを使用できるテキストチャンネルを設定します";
         this.arguments = "<channel|NONE>";
         this.aliases = bot.getConfig().getAliases(this.name);
     }
@@ -43,28 +46,41 @@ public class SettcCmd extends AdminCommand
     {
         if(event.getArgs().isEmpty())
         {
-            event.reply(event.getClient().getError()+" Please include a text channel or NONE");
+            event.reply(event.getClient().getError()+" テキストチャンネル、または NONE を入力してください");
             return;
         }
         Settings s = event.getClient().getSettingsFor(event.getGuild());
         if(event.getArgs().equalsIgnoreCase("none"))
         {
             s.setTextChannel(null);
-            event.reply(event.getClient().getSuccess()+" Music commands can now be used in any channel");
+            event.reply(event.getClient().getSuccess()+" すべてのチャンネルで音楽コマンドを使用できるようにしました");
         }
         else
         {
-            List<TextChannel> list = FinderUtil.findTextChannels(event.getArgs(), event.getGuild());
+            List<GuildMessageChannel> list = findMessageChannels(event.getArgs(), event.getGuild());
             if(list.isEmpty())
-                event.reply(event.getClient().getWarning()+" No Text Channels found matching \""+event.getArgs()+"\"");
+                event.reply(event.getClient().getWarning()+" \""+event.getArgs()+"\" に一致するメッセージチャンネルは見つかりませんでした");
             else if (list.size()>1)
-                event.reply(event.getClient().getWarning()+FormatUtil.listOfTChannels(list, event.getArgs()));
+                event.reply(event.getClient().getWarning()+FormatUtil.listOfMessageChannels(list, event.getArgs()));
             else
             {
-                s.setTextChannel(list.get(0));
-                event.reply(event.getClient().getSuccess()+" Music commands can now only be used in <#"+list.get(0).getId()+">");
+                GuildMessageChannel channel = list.get(0);
+                s.setTextChannel(channel);
+                event.reply(event.getClient().getSuccess()+" 音楽コマンドは "+channel.getAsMention()+" のみで使用できます");
             }
         }
     }
     
+    private List<GuildMessageChannel> findMessageChannels(String query, Guild guild)
+    {
+        List<GuildMessageChannel> results = new ArrayList<>();
+        results.addAll(FinderUtil.findTextChannels(query, guild));
+        FinderUtil.findVoiceChannels(query, guild).forEach(vc ->
+        {
+            GuildChannel channel = guild.getGuildChannelById(vc.getIdLong());
+            if(channel instanceof GuildMessageChannel)
+                results.add((GuildMessageChannel) channel);
+        });
+        return results;
+    }
 }

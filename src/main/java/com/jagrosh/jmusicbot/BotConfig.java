@@ -23,6 +23,8 @@ import com.typesafe.config.*;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import net.dv8tion.jda.api.OnlineStatus;
 import net.dv8tion.jda.api.entities.Activity;
 
@@ -39,7 +41,8 @@ public class BotConfig
     private final static String END_TOKEN = "/// END OF JMUSICBOT CONFIG ///";
     
     private Path path = null;
-    private String token, prefix, altprefix, helpWord, playlistsFolder, logLevel,
+    private List<String> tokens = new ArrayList<>();
+    private String prefix, altprefix, helpWord, playlistsFolder, logLevel,
             successEmoji, warningEmoji, errorEmoji, loadingEmoji, searchingEmoji,
             evalEngine;
     private boolean stayInChannel, songInGame, npImages, updatealerts, useEval, dbots;
@@ -56,6 +59,12 @@ public class BotConfig
     {
         this.prompt = prompt;
     }
+
+    public BotConfig(Prompt prompt, Path path)
+    {
+        this.prompt = prompt;
+        this.path = path;
+    }
     
     public void load()
     {
@@ -65,14 +74,18 @@ public class BotConfig
         try 
         {
             // get the path to the config, default config.txt
-            path = getConfigPath();
+            path = path != null ? path : getConfigPath();
             
             // load in the config file, plus the default values
             //Config config = ConfigFactory.parseFile(path.toFile()).withFallback(ConfigFactory.load());
             Config config = ConfigFactory.load();
             
             // set values
-            token = config.getString("token");
+            // tokens: prefer list, fallback to single token
+            tokens = new ArrayList<>(config.getStringList("tokens"));
+            if(tokens.isEmpty() && config.hasPath("token"))
+                tokens.add(config.getString("token"));
+            
             prefix = config.getString("prefix");
             altprefix = config.getString("altprefix");
             helpWord = config.getString("help");
@@ -103,32 +116,52 @@ public class BotConfig
             // we may need to write a new config file
             boolean write = false;
 
-            // validate bot token
-            if(token==null || token.isEmpty() || token.equalsIgnoreCase("BOT_TOKEN_HERE"))
+            // validate tokens (3 instances)
+            boolean tokensUpdated = false;
+            for(int i=0; i<3; i++)
             {
-                token = prompt.prompt("Please provide a bot token."
-                        + "\nInstructions for obtaining a token can be found here:"
-                        + "\nhttps://github.com/jagrosh/MusicBot/wiki/Getting-a-Bot-Token."
-                        + "\nBot Token: ");
-                if(token==null)
+                if(tokens.size() <= i || tokens.get(i)==null || tokens.get(i).isEmpty() || tokens.get(i).toUpperCase().contains("BOT_TOKEN"))
                 {
-                    prompt.alert(Prompt.Level.WARNING, CONTEXT, "No token provided! Exiting.\n\nConfig Location: " + path.toAbsolutePath().toString());
-                    return;
-                }
-                else
-                {
-                    write = true;
+                    String input = prompt.prompt("ボット"+(i+1)+" のトークンを入力してください。"
+                            + "\nトークンの取得方法はこちらを参照してください:"
+                            + "\nhttps://github.com/jagrosh/MusicBot/wiki/Getting-a-Bot-Token."
+                            + "\nBot Token "+(i+1)+": ");
+                    if(input==null || input.trim().isEmpty())
+                    {
+                        prompt.alert(Prompt.Level.WARNING, CONTEXT, "No token provided for instance "+(i+1)+"! Exiting.\n\nConfig Location: " + path.toAbsolutePath().toString());
+                        return;
+                    }
+                    // ensure size
+                    while(tokens.size()<=i) tokens.add("");
+                    tokens.set(i, input.trim());
+                    tokensUpdated = true;
                 }
             }
+            if(tokensUpdated)
+                write = true;
             
+            // validate prefix
+            if(prefix==null || prefix.trim().isEmpty())
+            {
+                String input = prompt.prompt("プレフィックスが設定されていません。"
+                        + "\n使用するコマンドプレフィックスを入力してください（例: !）"
+                        + "\n（そのまま空で Enter すると ! が使われます）"
+                        + "\nPrefix: ");
+                if(input==null || input.trim().isEmpty())
+                    prefix = "!";
+                else
+                    prefix = input.trim();
+                write = true;
+            }
+
             // validate bot owner
             if(owner<=0)
             {
                 try
                 {
-                    owner = Long.parseLong(prompt.prompt("Owner ID was missing, or the provided owner ID is not valid."
-                        + "\nPlease provide the User ID of the bot's owner."
-                        + "\nInstructions for obtaining your User ID can be found here:"
+                    owner = Long.parseLong(prompt.prompt("オーナーIDが設定されていないか、指定されたオーナーIDが無効です。"
+                        + "\nボット所有者のユーザーIDを入力してください。"
+                        + "\nユーザーIDの取得方法はこちらを参照してください:"
                         + "\nhttps://github.com/jagrosh/MusicBot/wiki/Finding-Your-User-ID"
                         + "\nOwner User ID: "));
                 }
@@ -161,17 +194,21 @@ public class BotConfig
     
     private void writeToFile()
     {
-        byte[] bytes = loadDefaultConfig().replace("BOT_TOKEN_HERE", token)
+        String base = loadDefaultConfig()
+                .replace("BOT_TOKEN_1", tokens.size()>0 ? tokens.get(0) : "BOT_TOKEN_1")
+                .replace("BOT_TOKEN_2", tokens.size()>1 ? tokens.get(1) : "BOT_TOKEN_2")
+                .replace("BOT_TOKEN_3", tokens.size()>2 ? tokens.get(2) : "BOT_TOKEN_3")
                 .replace("0 // OWNER ID", Long.toString(owner))
-                .trim().getBytes();
+                .trim();
+        byte[] bytes = base.getBytes();
         try 
         {
             Files.write(path, bytes);
         }
         catch(IOException ex) 
         {
-            prompt.alert(Prompt.Level.WARNING, CONTEXT, "Failed to write new config options to config.txt: "+ex
-                + "\nPlease make sure that the files are not on your desktop or some other restricted area.\n\nConfig Location: " 
+            prompt.alert(Prompt.Level.WARNING, CONTEXT, "config.txt に新しい設定を書き込めませんでした: "+ex
+                + "\nファイルがデスクトップや制限された場所にないか確認してください。\n\nConfig Location: "
                 + path.toAbsolutePath().toString());
         }
     }
@@ -180,7 +217,7 @@ public class BotConfig
     {
         String original = OtherUtil.loadResource(new JMusicBot(), "/reference.conf");
         return original==null 
-                ? "token = BOT_TOKEN_HERE\r\nowner = 0 // OWNER ID" 
+                ? "tokens = [BOT_TOKEN_1, BOT_TOKEN_2, BOT_TOKEN_3]\r\nowner = 0 // OWNER ID" 
                 : original.substring(original.indexOf(START_TOKEN)+START_TOKEN.length(), original.indexOf(END_TOKEN)).trim();
     }
     
@@ -233,10 +270,11 @@ public class BotConfig
         return "NONE".equalsIgnoreCase(altprefix) ? null : altprefix;
     }
     
-    public String getToken()
+    public List<String> getTokens()
     {
-        return token;
+        return tokens;
     }
+    
     
     public double getSkipRatio()
     {

@@ -18,6 +18,7 @@ package com.jagrosh.jmusicbot.audio;
 import com.dunctebot.sourcemanagers.DuncteBotSources;
 import com.jagrosh.jmusicbot.Bot;
 import com.sedmelluq.discord.lavaplayer.container.MediaContainerRegistry;
+import com.sedmelluq.discord.lavaplayer.player.AudioConfiguration;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
 import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager;
 import com.sedmelluq.discord.lavaplayer.source.AudioSourceManagers;
@@ -29,7 +30,14 @@ import com.sedmelluq.discord.lavaplayer.source.nico.NicoAudioSourceManager;
 import com.sedmelluq.discord.lavaplayer.source.soundcloud.SoundCloudAudioSourceManager;
 import com.sedmelluq.discord.lavaplayer.source.twitch.TwitchStreamAudioSourceManager;
 import com.sedmelluq.discord.lavaplayer.source.vimeo.VimeoAudioSourceManager;
+import com.sedmelluq.discord.lavaplayer.track.playback.NonAllocatingAudioFrameBuffer;
 import dev.lavalink.youtube.YoutubeAudioSourceManager;
+import dev.lavalink.youtube.clients.Android;
+import dev.lavalink.youtube.clients.AndroidVr;
+import dev.lavalink.youtube.clients.Ios;
+import dev.lavalink.youtube.clients.Music;
+import dev.lavalink.youtube.clients.Web;
+import dev.lavalink.youtube.clients.WebEmbedded;
 import net.dv8tion.jda.api.entities.Guild;
 
 /**
@@ -47,9 +55,26 @@ public class PlayerManager extends DefaultAudioPlayerManager
     
     public void init()
     {
-        TransformativeAudioSourceManager.createTransforms(bot.getConfig().getTransforms()).forEach(t -> registerSourceManager(t));
+        AudioConfiguration configuration = getConfiguration();
+        configuration.setOpusEncodingQuality(10);
+        configuration.setResamplingQuality(AudioConfiguration.ResamplingQuality.HIGH);
+        configuration.setFrameBufferFactory(NonAllocatingAudioFrameBuffer::new);
+        setFrameBufferDuration(1000);
 
-        YoutubeAudioSourceManager yt = new YoutubeAudioSourceManager(true);
+        // Allow custom URL transforms (eg. sharing links -> canonical YouTube URLs) before registering sources
+        TransformativeAudioSourceManager.createTransforms(bot.getConfig().getTransforms()).forEach(this::registerSourceManager);
+
+        // Use multiple official YouTube clients; mobile clients still provide signed URLs, Music keeps ytsearch
+        YoutubeAudioSourceManager yt = new YoutubeAudioSourceManager(
+                true,
+                true,
+                true,
+                new Android(),    // Prefer mobile clients; they still provide signed URLs
+                new Ios(),
+                new Web(),
+                new WebEmbedded(),
+                new AndroidVr(),
+                new Music());     // Music client keeps ytsearch available
         yt.setPlaylistPageCount(bot.getConfig().getMaxYTPlaylistPages());
         registerSourceManager(yt);
 

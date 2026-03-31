@@ -43,7 +43,7 @@ public class PlaynextCmd extends DJCommand
         this.loadingEmoji = bot.getConfig().getLoading();
         this.name = "playnext";
         this.arguments = "<title|URL>";
-        this.help = "plays a single song next";
+        this.help = "次に再生する曲を1件追加します";
         this.aliases = bot.getConfig().getAliases(this.name);
         this.beListening = true;
         this.bePlaying = false;
@@ -54,13 +54,13 @@ public class PlaynextCmd extends DJCommand
     {
         if(event.getArgs().isEmpty() && event.getMessage().getAttachments().isEmpty())
         {
-            event.replyWarning("Please include a song title or URL!");
+            event.replyWarning("曲名または URL を入力してください！");
             return;
         }
         String args = event.getArgs().startsWith("<") && event.getArgs().endsWith(">") 
                 ? event.getArgs().substring(1,event.getArgs().length()-1) 
                 : event.getArgs().isEmpty() ? event.getMessage().getAttachments().get(0).getUrl() : event.getArgs();
-        event.reply(loadingEmoji+" Loading... `["+args+"]`", m -> bot.getPlayerManager().loadItemOrdered(event.getGuild(), args, new ResultHandler(m,event,false)));
+        event.reply(loadingEmoji+" 読み込み中... `["+args+"]`", m -> bot.getPlayerManager().loadItemOrdered(event.getGuild(), args, new ResultHandler(m,event,false)));
     }
     
     private class ResultHandler implements AudioLoadResultHandler
@@ -80,14 +80,14 @@ public class PlaynextCmd extends DJCommand
         {
             if(bot.getConfig().isTooLong(track))
             {
-                m.editMessage(FormatUtil.filter(event.getClient().getWarning()+" This track (**"+track.getInfo().title+"**) is longer than the allowed maximum: `"
+                m.editMessage(FormatUtil.filter(event.getClient().getWarning()+" このトラック（**"+track.getInfo().title+"**）は許可された最大長を超えています: `"
                         + TimeUtil.formatTime(track.getDuration())+"` > `"+ TimeUtil.formatTime(bot.getConfig().getMaxSeconds()*1000)+"`")).queue();
                 return;
             }
             AudioHandler handler = (AudioHandler)event.getGuild().getAudioManager().getSendingHandler();
             int pos = handler.addTrackToFront(new QueuedTrack(track, RequestMetadata.fromResultHandler(track, event)))+1;
-            String addMsg = FormatUtil.filter(event.getClient().getSuccess()+" Added **"+track.getInfo().title
-                    +"** (`"+ TimeUtil.formatTime(track.getDuration())+"`) "+(pos==0?"to begin playing":" to the queue at position "+pos));
+            String addMsg = FormatUtil.filter(event.getClient().getSuccess()+" **"+track.getInfo().title
+                    +"** (`"+ TimeUtil.formatTime(track.getDuration())+"`) を追加しました"+(pos==0?"（すぐに再生されます）":"（キューの位置 " + pos + "）"));
             m.editMessage(addMsg).queue();
         }
         
@@ -114,7 +114,7 @@ public class PlaynextCmd extends DJCommand
         public void noMatches()
         {
             if(ytsearch)
-                m.editMessage(FormatUtil.filter(event.getClient().getWarning()+" No results found for `"+event.getArgs()+"`.")).queue();
+                m.editMessage(FormatUtil.filter(event.getClient().getWarning()+" `"+event.getArgs()+"` に一致する結果が見つかりませんでした。")).queue();
             else
                 bot.getPlayerManager().loadItemOrdered(event.getGuild(), "ytsearch:"+event.getArgs(), new ResultHandler(m,event,true));
         }
@@ -123,9 +123,9 @@ public class PlaynextCmd extends DJCommand
         public void loadFailed(FriendlyException throwable)
         {
             if(throwable.severity==FriendlyException.Severity.COMMON)
-                m.editMessage(event.getClient().getError()+" Error loading: "+throwable.getMessage()).queue();
+                m.editMessage(event.getClient().getError()+" 読み込み中にエラーが発生しました: "+throwable.getMessage()).queue();
             else
-                m.editMessage(event.getClient().getError()+" Error loading track.").queue();
+                m.editMessage(event.getClient().getError()+" トラックを読み込めませんでした。").queue();
         }
     }
 }

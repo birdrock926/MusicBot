@@ -14,8 +14,8 @@
         </repository>
         <repository>
             <id>central</id>
-            <name>bintray</name>
-            <url>https://jcenter.bintray.com</url>
+            <name>Maven Central</name>
+            <url>https://repo1.maven.org/maven2</url>
         </repository>
         <repository>
             <id>jitpack.io</id>
@@ -31,9 +31,23 @@
             <url>https://m2.duncte123.dev/releases</url>
         </repository>
         <repository>
+            <id>chew</id>
+            <name>m2-chew</name>
+            <url>https://m2.chew.pro/releases</url>
+        </repository>
+        <repository>
             <id>arbjergDev</id>
             <name>Lavalink Repository</name>
             <url>https://maven.lavalink.dev/releases</url>
+        </repository>
+        <repository>
+            <id>arbjergSnapshots</id>
+            <name>Lavalink Snapshot Repository</name>
+            <url>https://maven.lavalink.dev/snapshots</url>
+            <snapshots>
+                <enabled>true</enabled>
+                <updatePolicy>always</updatePolicy>
+            </snapshots>
         </repository>
     </repositories>
 
@@ -42,25 +56,39 @@
         <dependency>
             <groupId>net.dv8tion</groupId>
             <artifactId>JDA</artifactId>
-            <version>4.4.1_353</version>
+            <version>5.5.1</version>
         </dependency>
         <dependency>
-            <groupId>com.jagrosh</groupId>
-            <artifactId>jda-utilities</artifactId>
-            <version>3.0.5</version>
-            <type>pom</type>
+            <groupId>pw.chew</groupId>
+            <artifactId>jda-chewtils-command</artifactId>
+            <version>2.1</version>
+        </dependency>
+        <dependency>
+            <groupId>pw.chew</groupId>
+            <artifactId>jda-chewtils-commons</artifactId>
+            <version>2.1</version>
+        </dependency>
+        <dependency>
+            <groupId>pw.chew</groupId>
+            <artifactId>jda-chewtils-menu</artifactId>
+            <version>2.1</version>
+        </dependency>
+        <dependency>
+            <groupId>pw.chew</groupId>
+            <artifactId>jda-chewtils-examples</artifactId>
+            <version>2.1</version>
         </dependency>
 
         <!-- Music Dependencies -->
         <dependency>
             <groupId>dev.arbjerg</groupId>
             <artifactId>lavaplayer</artifactId>
-            <version>2.2.1</version>
+            <version>2.2.4</version>
         </dependency>
         <dependency>
             <groupId>dev.lavalink.youtube</groupId>
             <artifactId>common</artifactId>
-            <version>1.5.2</version>
+            <version>1.18.0</version>
         </dependency>
 	<dependency>
 	    <groupId>com.github.jagrosh</groupId>
@@ -77,7 +105,7 @@
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
-            <version>1.2.13</version>
+            <version>1.5.12</version>
         </dependency>
         <dependency>
             <groupId>com.typesafe</groupId>
@@ -88,6 +116,11 @@
             <groupId>org.jsoup</groupId>
             <artifactId>jsoup</artifactId>
             <version>1.15.3</version>
+        </dependency>
+        <dependency>
+            <groupId>redis.clients</groupId>
+            <artifactId>jedis</artifactId>
+            <version>5.1.0</version>
         </dependency>
 
         <!-- Testing Dependencies -->
@@ -153,3 +186,4 @@
         <maven.compiler.target>11</maven.compiler.target>
     </properties>
 </project>
+

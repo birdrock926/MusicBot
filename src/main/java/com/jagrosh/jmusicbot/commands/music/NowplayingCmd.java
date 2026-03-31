@@ -20,7 +20,6 @@ import com.jagrosh.jmusicbot.Bot;
 import com.jagrosh.jmusicbot.audio.AudioHandler;
 import com.jagrosh.jmusicbot.commands.MusicCommand;
 import net.dv8tion.jda.api.Permission;
-import net.dv8tion.jda.api.entities.Message;
 
 /**
  *
@@ -32,7 +31,7 @@ public class NowplayingCmd extends MusicCommand
     {
         super(bot);
         this.name = "nowplaying";
-        this.help = "shows the song that is currently playing";
+        this.help = "現在再生中の曲を表示します";
         this.aliases = bot.getConfig().getAliases(this.name);
         this.botPermissions = new Permission[]{Permission.MESSAGE_EMBED_LINKS};
     }
@@ -41,15 +40,20 @@ public class NowplayingCmd extends MusicCommand
     public void doCommand(CommandEvent event) 
     {
         AudioHandler handler = (AudioHandler)event.getGuild().getAudioManager().getSendingHandler();
-        Message m = handler.getNowPlaying(event.getJDA());
-        if(m==null)
+        AudioHandler.NowPlayingMessage message = handler.getNowPlaying(event.getJDA());
+        if(message == null)
         {
-            event.reply(handler.getNoMusicPlaying(event.getJDA()));
+            AudioHandler.NowPlayingMessage fallback = handler.getNoMusicPlaying(event.getJDA());
+            event.getChannel()
+                    .sendMessage(fallback.toCreateData())
+                    .queue();
             bot.getNowplayingHandler().clearLastNPMessage(event.getGuild());
         }
         else
         {
-            event.reply(m, msg -> bot.getNowplayingHandler().setLastNPMessage(msg));
+            event.getChannel()
+                    .sendMessage(message.toCreateData())
+                    .queue(msg -> bot.getNowplayingHandler().setLastNPMessage(msg));
         }
     }
 }

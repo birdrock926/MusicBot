@@ -31,8 +31,8 @@ import java.util.stream.Collectors;
  */
 public enum QueueType
 {
-    LINEAR("\u23E9", "Linear", LinearQueue::new),     // ⏩
-    FAIR("\uD83D\uDD22", "Fair", FairQueue::new);     // 🔢
+    LINEAR("\u23E9", "リニア", LinearQueue::new),     // ⏩
+    FAIR("\uD83D\uDD22", "公平", FairQueue::new);     // 🔢
 
     private final String userFriendlyName;
     private final String emoji;
