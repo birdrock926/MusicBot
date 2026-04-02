@@ -27,6 +27,19 @@ A cross-platform Discord music bot with a clean interface, and that is easy to s
   * Supports local files
   * Playlist support (both web/youtube, and local)
 
+## Audio quality and buffering
+JMusicBot streams audio to Discord using Lavaplayer's Opus encoder. The encoder now
+forces its quality level to `10`, which corresponds to roughly 128 kbps Opus frames
+and is the highest bitrate Discord accepts for standard voice connections. In
+addition, playback goes through a lightweight jitter buffer (about 400 ms of
+audio) backed by Lavaplayer's expanded 1-second frame queue so that momentary CPU
+or network hiccups no longer surface as audible pops.
+
+Because Discord expects Opus frames, downloading tracks as MP3 files before
+sending them does not reduce latency and would instead add conversion overhead.
+If your guild's voice channel allows higher bitrates (through boosts), Discord will
+automatically accommodate them without additional changes to the bot's code.
+
 ## Supported sources and formats
 JMusicBot supports all sources and formats supported by [lavaplayer](https://github.com/sedmelluq/lavaplayer#supported-formats):
 ### Sources
